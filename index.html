@@ -289,67 +289,97 @@
       if(type==='lose') el.classList.add('result-lose');
       if(type==='win') popConfetti();
     }
-    function popConfetti(){const div=document.createElement('div');div.textContent='🎉';document.body.appendChild(div);setTimeout(()=>div.remove(),1200)}
+    function popConfetti(){const div=document.createElement('div');div.style.position='fixed';div.style.left='50%';div.style.top='20%';div.style.zIndex=9999;div.textContent='🎉';div.style.fontSize='40px';document.body.appendChild(div);setTimeout(()=>div.remove(),900)}
 
-    // Store logic
+    async function loadPromos(){
+      const snap = await db.collection('promocodes').orderBy('createdAt','desc').limit(50).get();
+      const list = snap.docs.map(d=>({id:d.id,...d.data()}));
+      qs('#promo-list').innerHTML = list.map(p=>`<div style="margin-bottom:6px"><strong>${p.code}</strong> — ${p.rewardAmount} ${p.rewardType} — creado por ${p.createdByEmail||'unknown'}</div>`).join('')||'<div class="small">No hay codes</div>';
+    }
+
+    qs('#btn-create-code').addEventListener('click', async ()=>{
+      const user = auth.currentUser; if(!user) return alert('No logeado'); if(!isAdminEmail(user.email)) return alert('No autorizado');
+      const code = qs('#new-code').value.trim(); const type = qs('#new-type').value; const amt = parseInt(qs('#new-amt').value)||0;
+      if(!code||amt<=0) return alert('completa los campos');
+      await db.collection('promocodes').doc(code).set({code, rewardType:type, rewardAmount:amt, createdBy:user.uid, createdByEmail:user.email, createdAt:firebase.firestore.FieldValue.serverTimestamp(), usedBy:[]});
+      alert('Código creado: '+code); loadPromos();
+    });
+
+    qs('#btn-redeem').addEventListener('click', async ()=>{
+      const code = qs('#promo-input').value.trim(); if(!code) return;
+      const user = auth.currentUser; if(!user) return alert('No logeado');
+      const docRef = db.collection('promocodes').doc(code);
+      const doc = await docRef.get(); if(!doc.exists) return alert('Código inválido');
+      const data = doc.data(); if((data.usedBy||[]).includes(user.uid)) return alert('Ya usaste este código');
+      if(data.rewardType==='robux'){await db.collection('users').doc(user.uid).update({robux: firebase.firestore.FieldValue.increment(data.rewardAmount)})}
+      await docRef.update({usedBy: firebase.firestore.FieldValue.arrayUnion(user.uid)});
+      alert('Código canjeado: +'+data.rewardAmount+' '+data.rewardType); loadPromos();
+    });
+
     async function loadStore(){
+      const snap = await db.collection('store').orderBy('createdAt','desc').get();
+      const items = snap.docs.map(d=>({id:d.id,...d.data()}));
       const area = qs('#store-area'); area.innerHTML='';
-      const snap = await db.collection('store').get();
-      snap.forEach(doc=>{
-        const d = doc.data(); const div = document.createElement('div'); div.className='item card';
-        div.innerHTML = `<img src="${d.img||'https://via.placeholder.com/150'}"/><div>${d.name}</div><div>${d.price} R$</div>`;
-        div.addEventListener('click', ()=>buyItem(doc.id,d.price));
+      items.forEach(it=>{
+        const div = document.createElement('div'); div.className='card item';
+        div.innerHTML = `
+          ${it.img?`<img src="${it.img}" />`:''}
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <div style="font-weight:800">${it.name}</div>
+              <div class="small">${it.price} robux</div>
+            </div>
+            <div style="text-align:right">
+              <div class="tag" style="background:${it.tagBg||'#fde68a'};color:${it.tagColor||'#111'}">${it.tag||''}</div>
+              <div style="height:8px"></div>
+              <button class="btn buy-btn">Comprar</button>
+            </div>
+          </div>
+        `;
+        div.querySelector('.buy-btn').addEventListener('click', ()=>buyItem(it));
         area.appendChild(div);
       });
     }
-    async function buyItem(id,price){
-      const user = auth.currentUser; if(!user) return alert('No logeado');
-      const userRef = db.collection('users').doc(user.uid); const snap = await userRef.get(); const data = snap.data()||{};
-      if(data.robux<price) return alert('Saldo insuficiente');
-      await userRef.update({robux: data.robux-price, inventory: firebase.firestore.FieldValue.arrayUnion({id, name:id, img:'https://via.placeholder.com/24'})});
-      alert('Compraste '+id);
-    }
-    qs('#btn-add-item')?.addEventListener('click', async ()=>{
-      const name=qs('#item-name').value;const price=parseInt(qs('#item-price').value||0);
-      const img=qs('#item-img').value; await db.collection('store').add({name,price,img});
-      loadStore();
+
+    qs('#btn-add-item').addEventListener('click', async ()=>{
+      const user = auth.currentUser; if(!user||!isAdminEmail(user.email)) return alert('No autorizado');
+      const name = qs('#item-name').value.trim();
+      const price = parseInt(qs('#item-price').value)||0;
+      const tag = qs('#item-tag').value.trim();
+      const tagBg = qs('#item-bg').value.trim()||'#fde68a';
+      const tagColor = qs('#item-color').value.trim()||'#111';
+      const img = qs('#item-img').value.trim()||'';
+      if(!name||price<=0) return alert('Completa nombre y precio');
+      await db.collection('store').add({name,price,tag,tagBg,tagColor,img,createdBy:user.uid,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+      alert('Item añadido'); loadStore();
     });
 
-    // Promos logic
-    async function loadPromos(){
-      const list = qs('#promo-list'); list.innerHTML='';
-      const snap = await db.collection('promos').get();
-      snap.forEach(doc=>{
-        const d = doc.data();
-        const div = document.createElement('div'); div.textContent=`${d.code} - ${d.type} ${d.amount}`;
-        list.appendChild(div);
-      });
-      // Ocultar la lista
-      list.style.display = 'none';
-    }
-    qs('#btn-redeem')?.addEventListener('click', async ()=>{
-      const code = qs('#promo-input').value.trim().toUpperCase(); if(!code) return;
-      const snap = await db.collection('promos').where('code','==',code).get();
-      if(snap.empty){alert('Código inválido'); return;}
-      const d = snap.docs[0].data();
+    async function buyItem(item){
       const user = auth.currentUser; if(!user) return alert('No logeado');
-      const userRef = db.collection('users').doc(user.uid);
-      if(d.type==='robux'){await userRef.update({robux: firebase.firestore.FieldValue.increment(d.amount)});}
-      alert('Canjeado!');
-    });
-    qs('#btn-create-code')?.addEventListener('click', async ()=>{
-      const code = qs('#new-code').value.trim().toUpperCase(); const type=qs('#new-type').value; const amt=parseInt(qs('#new-amt').value||0);
-      if(!code||amt<=0) return alert('Completa datos'); await db.collection('promos').add({code,type,amount:amt});
-      loadPromos();alert('Código creado');
-    });
+      const uref = db.collection('users').doc(user.uid);
+      const doc = await uref.get(); const data = doc.data()||{}; const bal = data.robux||0;
+      if(bal < item.price) return alert('Saldo insuficiente');
+      await uref.update({robux: firebase.firestore.FieldValue.increment(-item.price), inventory: firebase.firestore.FieldValue.arrayUnion({name:item.name,img:item.img||''})});
+      alert('Compraste: '+item.name);
+    }
 
-    // Favicon
-    const link = document.createElement('link');
-    link.rel = 'icon';
-    link.type = 'image/png';
-    link.href = 'https://cdn.discordapp.com/attachments/1418730046717296751/1420299146283188315/C-24-9-2025.png?ex=68d4e428&is=68d392a8&hm=d4828b1901d63f725a46e6addfef686125882a5908e0ad4e53b5e21e7bd6000d&';
-    document.head.appendChild(link);
   </script>
 
+<script>
+  // Ocultar los códigos promocionales en la pantalla de Promocodes
+  const promoList = document.getElementById('promo-list');
+  if (promoList) {
+    promoList.style.display = 'none';
+  }
+</script>
+
+<script>
+  const link = document.createElement('link');
+  link.rel = 'icon';
+  link.type = 'image/png';
+  link.href = 'https://cdn.discordapp.com/attachments/1418730046717296751/1420299146283188315/C-24-9-2025.png?ex=68d4e428&is=68d392a8&hm=d4828b1901d63f725a46e6addfef686125882a5908e0ad4e53b5e21e7bd6000d&'; // URL de tu logo
+  document.head.appendChild(link);
+</script>
+  
 </body>
 </html>
