@@ -1,0 +1,406 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Custom</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+  <style>
+    :root{--bg:#0f1724;--card:#111827;--muted:#9ca3af;--accent:#7c3aed;--glass:rgba(255,255,255,0.03)}
+    *{box-sizing:border-box;font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+    body{margin:0;background:linear-gradient(180deg,#071129 0%, #0f1724 100%);color:#e6eef8;min-height:100vh}
+    .app{display:grid;grid-template-columns:260px 1fr;gap:20px;padding:20px}
+    .sidebar{background:linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02));border-radius:14px;padding:18px;box-shadow:0 6px 24px rgba(2,6,23,0.6);height:calc(100vh - 40px);position:sticky;top:20px;overflow:auto}
+    .logo{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+    .logo img{width:44px;height:44px}
+    .logo h1{font-size:16px;margin:0}
+    .balance{display:flex;align-items:center;gap:8px;margin-bottom:16px}
+    .coin{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:12px;background:var(--glass)}
+    .coin img{width:26px;height:26px}
+    .menu{display:flex;flex-direction:column;gap:8px}
+    .btn{background:transparent;border:0;color:inherit;padding:10px 12px;text-align:left;border-radius:10px;cursor:pointer;font-weight:600}
+    .btn:hover{background:rgba(255,255,255,0.02)}
+    .btn.primary{background:linear-gradient(90deg,var(--accent),#5b21b6);color:white}
+    .main{padding:24px}
+    .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+    .card{background:var(--card);padding:16px;border-radius:12px;box-shadow:0 4px 20px rgba(2,6,23,0.6)}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
+    .hidden{display:none}
+    /* Modal */
+    .modal-back{position:fixed;inset:0;background:rgba(2,6,23,0.6);display:flex;align-items:center;justify-content:center;z-index:50}
+    .modal{width:420px;background:#071029;padding:18px;border-radius:12px}
+    input,select,textarea{width:100%;padding:10px;border-radius:8px;background:#0b1220;border:1px solid rgba(255,255,255,0.04);color:inherit}
+    label{font-size:13px;color:var(--muted);margin-bottom:6px;display:block}
+    .row{display:flex;gap:8px}
+    .tag{display:inline-block;padding:6px 10px;border-radius:8px;font-weight:600}
+    .result-win{animation:win 1s ease;}
+    .result-lose{animation:lose 1s ease;}
+    @keyframes win{0%{transform:scale(1)}50%{transform:scale(1.06)}100%{transform:scale(1)}}
+    @keyframes lose{0%{transform:translateX(0)}25%{transform:translateX(-8px)}50%{transform:translateX(8px)}75%{transform:translateX(-6px)}100%{transform:translateX(0)}}
+    .small{font-size:13px;color:var(--muted)}
+    .center{display:flex;align-items:center;justify-content:center}
+    .store-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+    .item{padding:12px;border-radius:10px}
+    .inv{margin-top:10px}
+    .auth{max-width:420px;margin:40px auto}
+    .link{color:#93c5fd;cursor:pointer}
+    footer{opacity:0.6;font-size:12px;margin-top:18px}
+  </style>
+</head>
+<body>
+  <div id="app-root">
+    <!-- AUTH SCREEN -->
+    <div id="auth-screen" class="auth card">
+      <h2>Pekora Invest - Demo</h2>
+      <p class="small">Regístrate o inicia sesión con email.</p>
+      <div id="auth-forms">
+        <div id="register-form">
+          <label>Email</label>
+          <input id="reg-email" type="email" />
+          <label>Contraseña</label>
+          <input id="reg-pass" type="password" />
+          <div style="height:8px"></div>
+          <button id="btn-register" class="btn primary">Registrarse</button>
+          <p class="small">¿Ya tenés cuenta? <span id="to-login" class="link">Iniciar sesión</span></p>
+        </div>
+        <div id="login-form" class="hidden">
+          <label>Email</label>
+          <input id="log-email" type="email" />
+          <label>Contraseña</label>
+          <input id="log-pass" type="password" />
+          <div style="height:8px"></div>
+          <button id="btn-login" class="btn primary">Iniciar sesión</button>
+          <p class="small">¿No tenés cuenta? <span id="to-register" class="link">Registrate</span></p>
+        </div>
+      </div>
+      <footer>Demo: no usar para datos reales. Firebase config incluida.</footer>
+    </div>
+
+    <!-- APP SCREEN -->
+    <div id="app-screen" class="app hidden">
+      <aside class="sidebar">
+        <div class="logo">
+          <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/c7/Robux_2019_Logo_gold.svg/1103px-Robux_2019_Logo_gold.svg.png" alt="robux">
+          <div>
+            <h1>Pekora Invest</h1>
+            <div class="small">Demo de inversion</div>
+          </div>
+        </div>
+        <div class="balance card">
+          <div class="coin">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/c7/Robux_2019_Logo_gold.svg/1103px-Robux_2019_Logo_gold.svg.png" />
+            <div>
+              <div style="font-weight:800" id="balance-amount">0</div>
+              <div class="small">Robux</div>
+            </div>
+          </div>
+        </div>
+        <nav class="menu">
+          <button class="btn" data-view="home">Inicio</button>
+          <button class="btn" id="btn-store" data-view="store">Tienda</button>
+          <button class="btn" id="btn-promos" data-view="promos">Promocodes</button>
+          <button class="btn" id="btn-invest" data-view="invest">Invertir</button>
+          <button class="btn" id="btn-logout">Cerrar sesión</button>
+        </nav>
+        <div style="margin-top:18px">
+          <div class="small">Cuenta:</div>
+          <div id="user-email" class="small" style="font-weight:700"></div>
+        </div>
+      </aside>
+
+      <main class="main">
+        <div class="topbar">
+          <div class="small">Bienvenido a tu panel</div>
+          <div class="small">Demo interactivo</div>
+        </div>
+
+        <div id="view-home" class="card">
+          <h3>Inicio</h3>
+          <p class="small">Usa el sidebar para navegar. Prueba apostar en Invertir, canjear Promocodes o comprar en Tienda.</p>
+          <div style="height:12px"></div>
+          <div class="grid">
+            <div class="card">
+              <h4>Balance</h4>
+              <div class="small">Tu saldo actual de robux.</div>
+              <div style="height:12px"></div>
+              <div style="font-size:28px;font-weight:800" id="home-balance">0</div>
+            </div>
+            <div class="card">
+              <h4>Inventario</h4>
+              <div id="inventory" class="inv small">Sin items</div>
+            </div>
+          </div>
+        </div>
+
+        <div id="view-store" class="card hidden">
+          <h3>Tienda</h3>
+          <div style="height:8px"></div>
+          <div id="store-area" class="store-grid"></div>
+          <div style="height:12px"></div>
+          <div id="store-admin" class="hidden card">
+            <h4>Agregar item (admin)</h4>
+            <label>Nombre</label><input id="item-name" />
+            <label>Precio (robux)</label><input id="item-price" type="number" />
+            <label>Tag text</label><input id="item-tag" />
+            <label>Tag bg color (hex)</label><input id="item-bg" placeholder="#f59e0b" />
+            <label>Tag text color (hex)</label><input id="item-color" placeholder="#000000" />
+            <div style="height:8px"></div>
+            <button id="btn-add-item" class="btn primary">Añadir item</button>
+          </div>
+        </div>
+
+        <div id="view-promos" class="card hidden">
+          <h3>Promocodes</h3>
+          <div style="height:8px"></div>
+          <label>Canjear código</label>
+          <div class="row"><input id="promo-input" placeholder="CODIGO123" /><button id="btn-redeem" class="btn primary">Canjear</button></div>
+          <div style="height:12px"></div>
+          <div id="promo-list" class="small"></div>
+          <div id="promo-admin" class="hidden card" style="margin-top:12px">
+            <h4>Crear código</h4>
+            <label>Nombre del código</label><input id="new-code" placeholder="REGALO10" />
+            <label>Tipo de recompensa</label>
+            <select id="new-type"><option value="robux">Robux</option></select>
+            <label>Cantidad</label><input id="new-amt" type="number" value="10" />
+            <div style="height:8px"></div>
+            <button id="btn-create-code" class="btn primary">Crear Código</button>
+          </div>
+        </div>
+
+        <div id="view-invest" class="card hidden">
+          <h3>Invertir / Apostar</h3>
+          <div class="small">Apostá una cantidad. Probabilidades: 50% perder, 40% ganar, 10% empatar (recuperás).</div>
+          <div style="height:12px"></div>
+          <label>Ingrese cantidad a apostar</label>
+          <div class="row"><input id="invest-amt" type="number" min="1" value="10" /><button id="btn-do-invest" class="btn primary">Apostar</button></div>
+          <div style="height:12px"></div>
+          <div id="invest-result" class="small"></div>
+        </div>
+
+      </main>
+    </div>
+
+    <!-- Modals -->
+    <div id="modal-root" class="hidden"></div>
+  </div>
+
+  <!-- Firebase + App Logic -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+
+  <script>
+    // ---------- Firebase config del usuario (proporcionado) ----------
+    const firebaseConfig = {
+      apiKey: "AIzaSyBwj_as6pb5Bg81F9Cl9VWTKkekMM9Exfk",
+      authDomain: "pekora-forum.firebaseapp.com",
+      projectId: "pekora-forum",
+      storageBucket: "pekora-forum.firebasestorage.app",
+      messagingSenderId: "161910967859",
+      appId: "1:161910967859:web:6a28cecaae74b9b7e9dd46",
+      measurementId: "G-BPBTW5KBRK"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    // ---------- Helpers ----------
+    const qs = s => document.querySelector(s);
+    const qsa = s => document.querySelectorAll(s);
+    const isAdminEmail = (email) => email === 'kinzudev@gmail.com';
+
+    // ---------- Auth UI ----------
+    const authScreen = qs('#auth-screen');
+    const appScreen = qs('#app-screen');
+    const balanceAmount = qs('#balance-amount');
+    const homeBalance = qs('#home-balance');
+    const userEmailEl = qs('#user-email');
+    const inventoryEl = qs('#inventory');
+
+    qs('#to-login').addEventListener('click', ()=>{qs('#register-form').classList.add('hidden');qs('#login-form').classList.remove('hidden')});
+    qs('#to-register').addEventListener('click', ()=>{qs('#register-form').classList.remove('hidden');qs('#login-form').classList.add('hidden')});
+
+    qs('#btn-register').addEventListener('click', async ()=>{
+      const email = qs('#reg-email').value.trim();
+      const pass = qs('#reg-pass').value;
+      if(!email||!pass){alert('completa email y contraseña');return}
+      try{
+        const userCred = await auth.createUserWithEmailAndPassword(email,pass);
+        await db.collection('users').doc(userCred.user.uid).set({email,robux:0,inventory:[]});
+      }catch(e){alert('Error: '+e.message)}
+    });
+
+    qs('#btn-login').addEventListener('click', async ()=>{
+      const email = qs('#log-email').value.trim();
+      const pass = qs('#log-pass').value;
+      if(!email||!pass){alert('completa email y contraseña');return}
+      try{await auth.signInWithEmailAndPassword(email,pass);}catch(e){alert('Error: '+e.message)}
+    });
+
+    qs('#btn-logout').addEventListener('click', ()=>auth.signOut());
+
+    // ---------- Listen auth state ----------
+    let userDocUnsub = null;
+    auth.onAuthStateChanged(async user =>{
+      if(user){
+        authScreen.classList.add('hidden');appScreen.classList.remove('hidden');
+        userEmailEl.textContent = user.email;
+        // admin UI
+        if(isAdminEmail(user.email)){
+          qs('#promo-admin').classList.remove('hidden');
+          qs('#store-admin').classList.remove('hidden');
+        } else {qs('#promo-admin').classList.add('hidden');qs('#store-admin').classList.add('hidden')}
+
+        // listen user doc
+        if(userDocUnsub) userDocUnsub();
+        const userRef = db.collection('users').doc(user.uid);
+        userDocUnsub = userRef.onSnapshot(doc=>{
+          const data = doc.data()||{};
+          const robux = data.robux||0;
+          balanceAmount.textContent = robux;
+          homeBalance.textContent = robux;
+          inventoryEl.textContent = (data.inventory && data.inventory.length)? data.inventory.join(', '): 'Sin items';
+        });
+
+        // ensure user doc exists
+        const udoc = await userRef.get();
+        if(!udoc.exists){await userRef.set({email:user.email,robux:0,inventory:[]})}
+
+        loadPromos();loadStore();
+      } else {
+        if(userDocUnsub) userDocUnsub();
+        authScreen.classList.remove('hidden');appScreen.classList.add('hidden');
+      }
+    });
+
+    // ---------- Navigation ----------
+    qsa('.menu .btn').forEach(b=>b.addEventListener('click', ()=>{
+      const v = b.dataset.view || b.getAttribute('data-view');
+      showView(v);
+    }));
+    function showView(v){
+      ['home','store','promos','invest'].forEach(x=>qs('#view-'+x).classList.add('hidden'));
+      if(v) qs('#view-'+v).classList.remove('hidden');
+    }
+    showView('home');
+
+    // ---------- Invest logic ----------
+    qs('#btn-do-invest').addEventListener('click', async ()=>{
+      const amt = Math.max(1,parseInt(qs('#invest-amt').value||0));
+      const user = auth.currentUser; if(!user) return alert('No logeado');
+      const userRef = db.collection('users').doc(user.uid);
+      const snap = await userRef.get(); const data = snap.data()||{}; const bal = data.robux||0;
+      if(amt>bal) return alert('Saldo insuficiente');
+      // probabilities: 0-49 lose (50%), 50-89 win (40%), 90-99 draw (10%)
+      const r = Math.floor(Math.random()*100);
+      let result='';
+      if(r<50){ // lose
+        await userRef.update({robux: bal-amt});
+        result = `Perdiste ${amt} robux.`;
+        animateResult('lose', result);
+      } else if(r<90){ // win
+        const gain = amt; // apuestas y ganas la misma cantidad
+        await userRef.update({robux: bal+gain});
+        result = `Ganaste ${gain} robux!`;
+        animateResult('win', result);
+      } else { // draw
+        result = `Empate — recuperás tu apuesta.`;
+        animateResult('draw', result);
+      }
+    });
+
+    function animateResult(type, text){
+      const el = qs('#invest-result'); el.textContent = text; el.classList.remove('result-win','result-lose');
+      if(type==='win') el.classList.add('result-win');
+      if(type==='lose') el.classList.add('result-lose');
+      if(type==='draw'){}
+      // small confetti effect (visual)
+      if(type==='win') popConfetti();
+    }
+    function popConfetti(){
+      const div = document.createElement('div'); div.style.position='fixed';div.style.left='50%';div.style.top='20%';div.style.zIndex=9999;
+      div.textContent='🎉';div.style.fontSize='40px';document.body.appendChild(div);
+      setTimeout(()=>div.remove(),900);
+    }
+
+    // ---------- Promocodes ----------
+    async function loadPromos(){
+      const snap = await db.collection('promocodes').orderBy('createdAt','desc').limit(50).get();
+      const list = snap.docs.map(d=>({id:d.id,...d.data()}));
+      qs('#promo-list').innerHTML = list.map(p=>`<div style="margin-bottom:6px"><strong>${p.code}</strong> — ${p.rewardAmount} ${p.rewardType} — creado por ${p.createdByEmail||'unknown'}</div>`).join('')||'<div class="small">No hay codes</div>';
+    }
+
+    qs('#btn-create-code').addEventListener('click', async ()=>{
+      const user = auth.currentUser; if(!user) return alert('No logeado');
+      if(!isAdminEmail(user.email)) return alert('No autorizado');
+      const code = qs('#new-code').value.trim(); const type = qs('#new-type').value; const amt = parseInt(qs('#new-amt').value)||0;
+      if(!code||amt<=0) return alert('completa los campos');
+      await db.collection('promocodes').doc(code).set({code, rewardType:type, rewardAmount:amt, createdBy:user.uid, createdByEmail:user.email, createdAt:firebase.firestore.FieldValue.serverTimestamp(), usedBy:[]});
+      alert('Código creado: '+code); loadPromos();
+    });
+
+    qs('#btn-redeem').addEventListener('click', async ()=>{
+      const code = qs('#promo-input').value.trim(); if(!code) return;
+      const user = auth.currentUser; if(!user) return alert('No logeado');
+      const docRef = db.collection('promocodes').doc(code);
+      const doc = await docRef.get(); if(!doc.exists) return alert('Código inválido');
+      const data = doc.data(); if((data.usedBy||[]).includes(user.uid)) return alert('Ya usaste este código');
+      // apply reward
+      if(data.rewardType==='robux'){
+        const userRef = db.collection('users').doc(user.uid);
+        await userRef.update({robux: firebase.firestore.FieldValue.increment(data.rewardAmount)});
+      }
+      await docRef.update({usedBy: firebase.firestore.FieldValue.arrayUnion(user.uid)});
+      alert('Código canjeado: +'+data.rewardAmount+' '+data.rewardType);
+      loadPromos();
+    });
+
+    // ---------- Store ----------
+    async function loadStore(){
+      const snap = await db.collection('store').orderBy('createdAt','desc').get();
+      const items = snap.docs.map(d=>({id:d.id,...d.data()}));
+      const area = qs('#store-area'); area.innerHTML='';
+      items.forEach(it=>{
+        const div = document.createElement('div'); div.className='card item';
+        div.innerHTML = `
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <div style="font-weight:800">${it.name}</div>
+              <div class="small">${it.price} robux</div>
+            </div>
+            <div style="text-align:right">
+              <div class="tag" style="background:${it.tagBg||'#fde68a'};color:${it.tagColor||'#111'}">${it.tag||''}</div>
+              <div style="height:8px"></div>
+              <button class="btn buy-btn">Comprar</button>
+            </div>
+          </div>
+        `;
+        div.querySelector('.buy-btn').addEventListener('click', ()=>buyItem(it));
+        area.appendChild(div);
+      });
+      // admin area is shown in auth listener
+    }
+
+    qs('#btn-add-item').addEventListener('click', async ()=>{
+      const user = auth.currentUser; if(!user||!isAdminEmail(user.email)) return alert('No autorizado');
+      const name = qs('#item-name').value.trim(); const price = parseInt(qs('#item-price').value)||0; const tag = qs('#item-tag').value.trim(); const tagBg = qs('#item-bg').value.trim()||'#fde68a'; const tagColor = qs('#item-color').value.trim()||'#111';
+      if(!name||price<=0) return alert('Completa nombre y precio');
+      await db.collection('store').add({name,price,tag,tagBg,tagColor,createdBy:user.uid,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+      alert('Item añadido'); loadStore();
+    });
+
+    async function buyItem(item){
+      const user = auth.currentUser; if(!user) return alert('No logeado');
+      const uref = db.collection('users').doc(user.uid);
+      const doc = await uref.get(); const data = doc.data()||{}; const bal = data.robux||0;
+      if(bal < item.price) return alert('Saldo insuficiente');
+      await uref.update({robux: firebase.firestore.FieldValue.increment(-item.price), inventory: firebase.firestore.FieldValue.arrayUnion(item.name)});
+      alert('Compraste: '+item.name);
+    }
+
+    // initial load
+    // Note: this is a demo. For production, secure Firestore rules are required.
+  </script>
+
+</body>
+</html>
