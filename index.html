@@ -381,6 +381,31 @@
   document.head.appendChild(link);
 </script>
 
+<script>
+  function ajustarItemsTienda() {
+    const storeArea = document.getElementById('store-area');
+    if (!storeArea) return;
 
+    // Cambiar estilos del grid
+    storeArea.style.display = 'grid';
+    storeArea.style.gridTemplateColumns = 'repeat(auto-fit, minmax(120px, 1fr))';
+    storeArea.style.gap = '8px';
+
+    // Ajustar estilos de cada item
+    const items = storeArea.querySelectorAll('.item');
+    items.forEach(item => {
+      item.style.padding = '8px';
+      item.style.fontSize = '12px';
+    });
+  }
+
+  // Ejecutar al cargar la tienda
+  window.addEventListener('load', ajustarItemsTienda);
+
+  // También ejecutar cada vez que se cargue la tienda dinámicamente
+  const observer = new MutationObserver(ajustarItemsTienda);
+  observer.observe(document.getElementById('store-area'), { childList: true });
+</script>
+  
 </body>
 </html>
