@@ -487,6 +487,38 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 </script>
+
+<script>
+// Bloquear click derecho
+document.addEventListener("contextmenu", function(e) {
+    e.preventDefault();
+    alert("🚫 Acción no permitida");
+});
+
+// Bloquear teclas de inspección
+document.addEventListener("keydown", function(e) {
+    // F12
+    if (e.key === "F12") {
+        e.preventDefault();
+        alert("🚫 Acción bloqueada");
+    }
+    // Ctrl+Shift+I (Inspección en la mayoría de navegadores)
+    if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "i") {
+        e.preventDefault();
+        alert("🚫 Acción bloqueada");
+    }
+    // Ctrl+Shift+J (Consola)
+    if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "j") {
+        e.preventDefault();
+        alert("🚫 Acción bloqueada");
+    }
+    // Ctrl+U (Ver código fuente)
+    if (e.ctrlKey && e.key.toLowerCase() === "u") {
+        e.preventDefault();
+        alert("🚫 Acción bloqueada");
+    }
+});
+</script>
   
 </body>
 </html>
