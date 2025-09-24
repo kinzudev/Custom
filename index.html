@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Custom</title>
+  <title>Pekora Invest (Demo)</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
   <style>
     :root{--bg:#0f1724;--card:#111827;--muted:#9ca3af;--accent:#7c3aed;--glass:rgba(255,255,255,0.03)}
@@ -45,6 +45,7 @@
     .auth{max-width:420px;margin:40px auto}
     .link{color:#93c5fd;cursor:pointer}
     footer{opacity:0.6;font-size:12px;margin-top:18px}
+    .item-img{width:100%;height:100px;object-fit:cover;border-radius:8px;margin-bottom:8px}
   </style>
 </head>
 <body>
@@ -144,6 +145,7 @@
             <label>Tag text</label><input id="item-tag" />
             <label>Tag bg color (hex)</label><input id="item-bg" placeholder="#f59e0b" />
             <label>Tag text color (hex)</label><input id="item-color" placeholder="#000000" />
+            <label>URL de imagen</label><input id="item-img" placeholder="https://..." />
             <div style="height:8px"></div>
             <button id="btn-add-item" class="btn primary">Añadir item</button>
           </div>
@@ -266,141 +268,8 @@
         const udoc = await userRef.get();
         if(!udoc.exists){await userRef.set({email:user.email,robux:0,inventory:[]})}
 
-        loadPromos();loadStore();
-      } else {
-        if(userDocUnsub) userDocUnsub();
-        authScreen.classList.remove('hidden');appScreen.classList.add('hidden');
-      }
-    });
-
-    // ---------- Navigation ----------
-    qsa('.menu .btn').forEach(b=>b.addEventListener('click', ()=>{
-      const v = b.dataset.view || b.getAttribute('data-view');
-      showView(v);
-    }));
-    function showView(v){
-      ['home','store','promos','invest'].forEach(x=>qs('#view-'+x).classList.add('hidden'));
-      if(v) qs('#view-'+v).classList.remove('hidden');
-    }
-    showView('home');
-
-    // ---------- Invest logic ----------
-    qs('#btn-do-invest').addEventListener('click', async ()=>{
-      const amt = Math.max(1,parseInt(qs('#invest-amt').value||0));
-      const user = auth.currentUser; if(!user) return alert('No logeado');
-      const userRef = db.collection('users').doc(user.uid);
-      const snap = await userRef.get(); const data = snap.data()||{}; const bal = data.robux||0;
-      if(amt>bal) return alert('Saldo insuficiente');
-      // probabilities: 0-49 lose (50%), 50-89 win (40%), 90-99 draw (10%)
-      const r = Math.floor(Math.random()*100);
-      let result='';
-      if(r<50){ // lose
-        await userRef.update({robux: bal-amt});
-        result = `Perdiste ${amt} robux.`;
-        animateResult('lose', result);
-      } else if(r<90){ // win
-        const gain = amt; // apuestas y ganas la misma cantidad
-        await userRef.update({robux: bal+gain});
-        result = `Ganaste ${gain} robux!`;
-        animateResult('win', result);
-      } else { // draw
-        result = `Empate — recuperás tu apuesta.`;
-        animateResult('draw', result);
-      }
-    });
-
-    function animateResult(type, text){
-      const el = qs('#invest-result'); el.textContent = text; el.classList.remove('result-win','result-lose');
-      if(type==='win') el.classList.add('result-win');
-      if(type==='lose') el.classList.add('result-lose');
-      if(type==='draw'){}
-      // small confetti effect (visual)
-      if(type==='win') popConfetti();
-    }
-    function popConfetti(){
-      const div = document.createElement('div'); div.style.position='fixed';div.style.left='50%';div.style.top='20%';div.style.zIndex=9999;
-      div.textContent='🎉';div.style.fontSize='40px';document.body.appendChild(div);
-      setTimeout(()=>div.remove(),900);
-    }
-
-    // ---------- Promocodes ----------
-    async function loadPromos(){
-      const snap = await db.collection('promocodes').orderBy('createdAt','desc').limit(50).get();
-      const list = snap.docs.map(d=>({id:d.id,...d.data()}));
-      qs('#promo-list').innerHTML = list.map(p=>`<div style="margin-bottom:6px"><strong>${p.code}</strong> — ${p.rewardAmount} ${p.rewardType} — creado por ${p.createdByEmail||'unknown'}</div>`).join('')||'<div class="small">No hay codes</div>';
-    }
-
-    qs('#btn-create-code').addEventListener('click', async ()=>{
-      const user = auth.currentUser; if(!user) return alert('No logeado');
-      if(!isAdminEmail(user.email)) return alert('No autorizado');
-      const code = qs('#new-code').value.trim(); const type = qs('#new-type').value; const amt = parseInt(qs('#new-amt').value)||0;
-      if(!code||amt<=0) return alert('completa los campos');
-      await db.collection('promocodes').doc(code).set({code, rewardType:type, rewardAmount:amt, createdBy:user.uid, createdByEmail:user.email, createdAt:firebase.firestore.FieldValue.serverTimestamp(), usedBy:[]});
-      alert('Código creado: '+code); loadPromos();
-    });
-
-    qs('#btn-redeem').addEventListener('click', async ()=>{
-      const code = qs('#promo-input').value.trim(); if(!code) return;
-      const user = auth.currentUser; if(!user) return alert('No logeado');
-      const docRef = db.collection('promocodes').doc(code);
-      const doc = await docRef.get(); if(!doc.exists) return alert('Código inválido');
-      const data = doc.data(); if((data.usedBy||[]).includes(user.uid)) return alert('Ya usaste este código');
-      // apply reward
-      if(data.rewardType==='robux'){
-        const userRef = db.collection('users').doc(user.uid);
-        await userRef.update({robux: firebase.firestore.FieldValue.increment(data.rewardAmount)});
-      }
-      await docRef.update({usedBy: firebase.firestore.FieldValue.arrayUnion(user.uid)});
-      alert('Código canjeado: +'+data.rewardAmount+' '+data.rewardType);
-      loadPromos();
-    });
-
-    // ---------- Store ----------
-    async function loadStore(){
-      const snap = await db.collection('store').orderBy('createdAt','desc').get();
-      const items = snap.docs.map(d=>({id:d.id,...d.data()}));
-      const area = qs('#store-area'); area.innerHTML='';
-      items.forEach(it=>{
-        const div = document.createElement('div'); div.className='card item';
-        div.innerHTML = `
-          <div style="display:flex;justify-content:space-between;align-items:center">
-            <div>
-              <div style="font-weight:800">${it.name}</div>
-              <div class="small">${it.price} robux</div>
-            </div>
-            <div style="text-align:right">
-              <div class="tag" style="background:${it.tagBg||'#fde68a'};color:${it.tagColor||'#111'}">${it.tag||''}</div>
-              <div style="height:8px"></div>
-              <button class="btn buy-btn">Comprar</button>
-            </div>
-          </div>
-        `;
-        div.querySelector('.buy-btn').addEventListener('click', ()=>buyItem(it));
-        area.appendChild(div);
-      });
-      // admin area is shown in auth listener
-    }
-
-    qs('#btn-add-item').addEventListener('click', async ()=>{
-      const user = auth.currentUser; if(!user||!isAdminEmail(user.email)) return alert('No autorizado');
-      const name = qs('#item-name').value.trim(); const price = parseInt(qs('#item-price').value)||0; const tag = qs('#item-tag').value.trim(); const tagBg = qs('#item-bg').value.trim()||'#fde68a'; const tagColor = qs('#item-color').value.trim()||'#111';
-      if(!name||price<=0) return alert('Completa nombre y precio');
-      await db.collection('store').add({name,price,tag,tagBg,tagColor,createdBy:user.uid,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
-      alert('Item añadido'); loadStore();
-    });
-
-    async function buyItem(item){
-      const user = auth.currentUser; if(!user) return alert('No logeado');
-      const uref = db.collection('users').doc(user.uid);
-      const doc = await uref.get(); const data = doc.data()||{}; const bal = data.robux||0;
-      if(bal < item.price) return alert('Saldo insuficiente');
-      await uref.update({robux: firebase.firestore.FieldValue.increment(-item.price), inventory: firebase.firestore.FieldValue.arrayUnion(item.name)});
-      alert('Compraste: '+item.name);
-    }
-
-    // initial load
-    // Note: this is a demo. For production, secure Firestore rules are required.
-  </script>
+        loadPromos();        
+      </script>
 
 </body>
 </html>
