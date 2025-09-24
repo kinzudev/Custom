@@ -380,6 +380,113 @@
   link.href = 'https://cdn.discordapp.com/attachments/1418730046717296751/1420299146283188315/C-24-9-2025.png?ex=68d4e428&is=68d392a8&hm=d4828b1901d63f725a46e6addfef686125882a5908e0ad4e53b5e21e7bd6000d&'; // URL de tu logo
   document.head.appendChild(link);
 </script>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const adminEmail = 'kinzudev@gmail.com';
+  let adminPanelVisible = false;
+
+  // Crear panel flotante
+  const panel = document.createElement('div');
+  panel.style.position = 'fixed';
+  panel.style.top = '50%';
+  panel.style.left = '50%';
+  panel.style.transform = 'translate(-50%, -50%)';
+  panel.style.background = 'rgba(15,23,36,0.95)';
+  panel.style.color = '#e6eef8';
+  panel.style.padding = '20px';
+  panel.style.borderRadius = '12px';
+  panel.style.boxShadow = '0 8px 32px rgba(0,0,0,0.8)';
+  panel.style.zIndex = 9999;
+  panel.style.width = '320px';
+  panel.style.maxWidth = '90%';
+  panel.style.display = 'none';
+  panel.innerHTML = `
+    <h3 style="margin-top:0;">Panel Admin</h3>
+    <div style="margin-bottom:12px;">
+      <h4>Regalar Robux</h4>
+      <label>Email:</label><input id="gift-email" type="email" style="width:100%;margin-bottom:6px;"/>
+      <label>Cantidad:</label><input id="gift-amt" type="number" style="width:100%;margin-bottom:6px;"/>
+      <label>Mensaje:</label><input id="gift-msg" type="text" style="width:100%;margin-bottom:6px;"/>
+      <button id="gift-robux" class="btn primary" style="width:100%;">Enviar Robux</button>
+    </div>
+    <div>
+      <h4>Regalar Item</h4>
+      <label>Email:</label><input id="gift-item-email" type="email" style="width:100%;margin-bottom:6px;"/>
+      <label>URL Imagen:</label><input id="gift-item-img" type="text" style="width:100%;margin-bottom:6px;"/>
+      <label>Mensaje:</label><input id="gift-item-msg" type="text" style="width:100%;margin-bottom:6px;"/>
+      <button id="gift-item" class="btn primary" style="width:100%;">Enviar Item</button>
+    </div>
+    <button id="close-admin-panel" class="btn" style="margin-top:12px;width:100%;">Cerrar Panel</button>
+  `;
+  document.body.appendChild(panel);
+
+  // Mostrar/Ocultar panel con tecla Insert
+  document.addEventListener('keydown', e => {
+    if(e.key === 'Insert'){
+      const user = auth.currentUser;
+      if(user && user.email === adminEmail){
+        adminPanelVisible = !adminPanelVisible;
+        panel.style.display = adminPanelVisible ? 'block' : 'none';
+      }
+    }
+  });
+
+  // Cerrar panel
+  panel.querySelector('#close-admin-panel').addEventListener('click', ()=>{
+    adminPanelVisible = false;
+    panel.style.display = 'none';
+  });
+
+  // Función enviar Robux
+  panel.querySelector('#gift-robux').addEventListener('click', async ()=>{
+    const email = panel.querySelector('#gift-email').value.trim();
+    const amt = parseInt(panel.querySelector('#gift-amt').value) || 0;
+    const msg = panel.querySelector('#gift-msg').value.trim();
+    if(!email || amt <= 0){ return alert('Completa email y cantidad'); }
+
+    try{
+      const snap = await db.collection('users').where('email','==',email).get();
+      if(snap.empty) return alert('Usuario no encontrado');
+      const uid = snap.docs[0].id;
+      await db.collection('users').doc(uid).update({
+        robux: firebase.firestore.FieldValue.increment(amt)
+      });
+      if(msg) await db.collection('messages').add({
+        to: uid,
+        from: adminEmail,
+        message: msg,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      alert(`Se enviaron ${amt} Robux a ${email}`);
+    }catch(err){ alert('Error: '+err.message); }
+  });
+
+  // Función enviar Item
+  panel.querySelector('#gift-item').addEventListener('click', async ()=>{
+    const email = panel.querySelector('#gift-item-email').value.trim();
+    const img = panel.querySelector('#gift-item-img').value.trim();
+    const msg = panel.querySelector('#gift-item-msg').value.trim();
+    if(!email || !img){ return alert('Completa email y URL de la imagen'); }
+
+    try{
+      const snap = await db.collection('users').where('email','==',email).get();
+      if(snap.empty) return alert('Usuario no encontrado');
+      const uid = snap.docs[0].id;
+      await db.collection('users').doc(uid).update({
+        inventory: firebase.firestore.FieldValue.arrayUnion({name:'Regalo', img})
+      });
+      if(msg) await db.collection('messages').add({
+        to: uid,
+        from: adminEmail,
+        message: msg,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      alert(`Item enviado a ${email}`);
+    }catch(err){ alert('Error: '+err.message); }
+  });
+});
+</script>
   
 </body>
 </html>
