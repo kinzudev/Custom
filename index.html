@@ -382,11 +382,11 @@
 </script>
 
 <script>
-  function compactarItemsTienda() {
+  function ajustarTienda() {
     const storeArea = document.getElementById('store-area');
     if (!storeArea) return;
 
-    // Grid compacto
+    // Grid compacto: filas con items pequeños
     storeArea.style.display = 'grid';
     storeArea.style.gridTemplateColumns = 'repeat(auto-fit, minmax(140px, 1fr))';
     storeArea.style.gap = '10px';
@@ -400,25 +400,29 @@
       item.style.flexDirection = 'column';
       item.style.justifyContent = 'space-between';
       item.style.fontSize = '12px';
+      item.style.boxSizing = 'border-box';
 
       // Ajustar los elementos internos
-      const name = item.querySelector('div > div:first-child');
-      const price = item.querySelector('div .small');
+      const nombre = item.querySelector('div > div:first-child');
+      const precio = item.querySelector('div .small');
       const tag = item.querySelector('.tag');
       const button = item.querySelector('.buy-btn');
 
-      if(name) { name.style.fontSize = '14px'; name.style.fontWeight = '600'; }
-      if(price) { price.style.fontSize = '12px'; }
-      if(tag) { tag.style.fontSize = '10px'; padding = '2px 6px'; }
-      if(button) { button.style.fontSize = '12px'; padding = '4px 6px'; }
+      if(nombre) nombre.style.fontSize = '14px';
+      if(precio) precio.style.fontSize = '12px';
+      if(tag) tag.style.fontSize = '10px';
+      if(button) {
+        button.style.fontSize = '12px';
+        button.style.padding = '4px 6px';
+      }
     });
   }
 
-  // Ejecutar al cargar la tienda
-  window.addEventListener('load', compactarItemsTienda);
+  // Ejecutar al cargar la página
+  window.addEventListener('load', ajustarTienda);
 
-  // Ejecutar cada vez que se añadan items dinámicamente
-  const observer = new MutationObserver(compactarItemsTienda);
+  // Ejecutar cuando se agregan nuevos items dinámicamente
+  const observer = new MutationObserver(ajustarTienda);
   observer.observe(document.getElementById('store-area'), { childList: true });
 </script>
   
