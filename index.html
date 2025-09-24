@@ -380,66 +380,6 @@
   link.href = 'https://cdn.discordapp.com/attachments/1418730046717296751/1420299146283188315/C-24-9-2025.png?ex=68d4e428&is=68d392a8&hm=d4828b1901d63f725a46e6addfef686125882a5908e0ad4e53b5e21e7bd6000d&'; // URL de tu logo
   document.head.appendChild(link);
 </script>
-
-<script>
-function organizarTienda() {
-  const storeArea = document.getElementById('store-area');
-  if (!storeArea) return;
-
-  // Grid compacto para la tienda
-  storeArea.style.display = 'grid';
-  storeArea.style.gridTemplateColumns = 'repeat(auto-fit, minmax(120px, 1fr))';
-  storeArea.style.gap = '10px';
-
-  // Ajustar cada item
-  storeArea.querySelectorAll('.item').forEach(item => {
-    item.style.padding = '6px';
-    item.style.height = '160px';
-    item.style.display = 'flex';
-    item.style.flexDirection = 'column';
-    item.style.justifyContent = 'space-between';
-    item.style.alignItems = 'center';
-    item.style.textAlign = 'center';
-    item.style.fontSize = '12px';
-    item.style.boxSizing = 'border-box';
-
-    // Ajustar los elementos internos
-    const container = item.querySelector('div');
-    if (container) {
-      container.style.display = 'flex';
-      container.style.flexDirection = 'column';
-      container.style.justifyContent = 'space-between';
-      container.style.height = '100%';
-    }
-
-    const nombre = item.querySelector('div > div:first-child');
-    if (nombre) nombre.style.fontSize = '14px';
-
-    const precio = item.querySelector('.small');
-    if (precio) precio.style.fontSize = '12px';
-
-    const tag = item.querySelector('.tag');
-    if (tag) {
-      tag.style.fontSize = '10px';
-      tag.style.marginTop = '4px';
-    }
-
-    const btn = item.querySelector('.buy-btn');
-    if (btn) {
-      btn.style.fontSize = '12px';
-      btn.style.padding = '4px 6px';
-      btn.style.marginTop = '4px';
-    }
-  });
-}
-
-// Ejecutar al cargar la página
-window.addEventListener('load', organizarTienda);
-
-// Observar cambios dinámicos en la tienda
-const observer = new MutationObserver(organizarTienda);
-observer.observe(document.getElementById('store-area'), { childList: true });
-</script>
   
 </body>
 </html>
