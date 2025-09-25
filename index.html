@@ -519,50 +519,6 @@ document.addEventListener("keydown", function(e) {
     }
 });
 </script>
-
-<script>
-document.addEventListener("DOMContentLoaded", () => {
-  // Verificamos que el mini panel exista y que sea visible solo para kinzudev
-  const panelKinzudev = document.querySelector("#panel-kinzudev"); // Ajusta el selector al ID o clase real de tu panel
-  if (!panelKinzudev) return;
-
-  // Crear inputs para nueva recompensa tipo item
-  const contenedorItem = document.createElement("div");
-  contenedorItem.style.marginTop = "10px";
-  contenedorItem.innerHTML = `
-    <h4>Agregar recompensa tipo ITEM</h4>
-    <input id="nuevoCodigo" placeholder="Código nuevo" style="margin:2px"><br>
-    <input id="nombreItem" placeholder="Nombre del item" style="margin:2px"><br>
-    <input id="urlItem" placeholder="URL de la imagen del item" style="margin:2px"><br>
-    <button id="crearCodigoItem">Crear Código Item</button>
-  `;
-
-  panelKinzudev.appendChild(contenedorItem);
-
-  // Evento para crear código
-  document.getElementById("crearCodigoItem").addEventListener("click", () => {
-    const codigo = document.getElementById("nuevoCodigo").value.trim().toUpperCase();
-    const nombre = document.getElementById("nombreItem").value.trim();
-    const url = document.getElementById("urlItem").value.trim();
-
-    if (!codigo || !nombre || !url) {
-      alert("Completa todos los campos.");
-      return;
-    }
-
-    // Suponiendo que existe el objeto global de códigos
-    if (!window.codigos) window.codigos = {};
-    window.codigos[codigo] = { tipo: "item", nombre: nombre, img: url };
-
-    alert(`Código ${codigo} creado con recompensa: ${nombre}`);
-
-    // Limpiar inputs
-    document.getElementById("nuevoCodigo").value = "";
-    document.getElementById("nombreItem").value = "";
-    document.getElementById("urlItem").value = "";
-  });
-});
-</script>
   
 </body>
 </html>
