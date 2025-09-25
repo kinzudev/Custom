@@ -520,5 +520,233 @@ document.addEventListener("keydown", function(e) {
 });
 </script>
 
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const adminEmail = "kinzudev@gmail.com";
+
+  // --- BOTÓN FLOTANTE ---
+  const halloweenBtn = document.createElement("button");
+  halloweenBtn.textContent = "🎃 Evento de Halloween";
+  Object.assign(halloweenBtn.style, {
+    position: "fixed", bottom: "20px", right: "20px",
+    background: "linear-gradient(135deg, orange, darkorange)",
+    color: "white", border: "none", padding: "12px 20px",
+    fontSize: "16px", fontWeight: "bold",
+    borderRadius: "12px", cursor: "pointer",
+    boxShadow: "0 4px 10px rgba(0,0,0,0.3)", zIndex: "9999"
+  });
+  document.body.appendChild(halloweenBtn);
+
+  // --- PANEL MODERNO ---
+  const panel = document.createElement("div");
+  Object.assign(panel.style, {
+    position: "fixed", top: "0", left: "0",
+    width: "100%", height: "100%",
+    background: "rgba(0,0,0,0.85)", color: "white",
+    display: "none", overflowY: "auto", zIndex: "10000"
+  });
+  panel.innerHTML = `
+    <div style="max-width:900px;margin:40px auto;background:#1e1e1e;
+      padding:25px;border-radius:16px;box-shadow:0 8px 20px rgba(0,0,0,0.6)">
+      <h2 style="margin:0 0 20px;font-size:26px">🎃 Misiones de Halloween</h2>
+      <div id="missions-list"></div>
+      <div id="admin-tools" style="margin-top:20px"></div>
+      <button id="close-panel" style="
+        margin-top:20px;padding:12px 20px;
+        background:red;color:white;font-weight:bold;
+        border:none;border-radius:8px;cursor:pointer">
+        Cerrar
+      </button>
+    </div>
+  `;
+  document.body.appendChild(panel);
+
+  halloweenBtn.onclick = () => { loadMissions(); panel.style.display = "block"; };
+  panel.querySelector("#close-panel").onclick = () => { panel.style.display = "none"; };
+
+  // --- CARGAR MISIONES ---
+  async function loadMissions(){
+    const list = panel.querySelector("#missions-list");
+    list.innerHTML = "<p>Cargando misiones...</p>";
+    const snap = await db.collection("missions").orderBy("createdAt","desc").get();
+    const user = auth.currentUser;
+    const missions = snap.docs.map(d=>({id:d.id,...d.data()}));
+    list.innerHTML = "";
+
+    missions.forEach(m => {
+      const div = document.createElement("div");
+      Object.assign(div.style, {
+        background:"#2a2a2a", padding:"15px", margin:"10px 0",
+        borderRadius:"10px", display:"flex",
+        justifyContent:"space-between", alignItems:"center"
+      });
+
+      const now = Date.now();
+      const unlockTime = m.createdAt.toMillis() + (m.waitHours*3600000);
+      const unlocked = now >= unlockTime;
+      const timeLeft = Math.ceil((unlockTime-now)/60000);
+
+      let rewardHTML = m.rewardType === "robux"
+        ? `<span style="color:#facc15;font-weight:bold">${m.amount} Robux</span>`
+        : `<img src="${m.img}" style="height:40px;border-radius:6px;vertical-align:middle;margin-right:8px"> 
+           <span>${m.itemName}</span>`;
+
+      div.innerHTML = `
+        <div>
+          <h3 style="margin:0 0 6px">${m.name}</h3>
+          <p style="margin:0">Recompensa: ${rewardHTML}</p>
+          <small style="color:#aaa">
+            ${unlocked ? "✅ Disponible" : "⏳ Disponible en " + timeLeft + " min"}
+          </small>
+        </div>
+        <div>
+          <button class="claim-btn" style="
+            padding:8px 12px;border:none;border-radius:6px;
+            background:${unlocked ? 'green':'#555'};
+            color:white;font-weight:bold;cursor:${unlocked?'pointer':'not-allowed'}">
+            ${m.claimedBy?.includes(user?.email) ? "Reclamado" : "Reclamar"}
+          </button>
+        </div>
+      `;
+
+      // Reclamar misión
+      const claimBtn = div.querySelector(".claim-btn");
+      if(unlocked && !(m.claimedBy?.includes(user?.email))){
+        claimBtn.onclick = async ()=>{
+          const userRef = db.collection("users").doc(user.uid);
+          if(m.rewardType === "robux"){
+            await userRef.update({ robux: firebase.firestore.FieldValue.increment(m.amount) });
+          } else {
+            await userRef.update({
+              inventory: firebase.firestore.FieldValue.arrayUnion({ name: m.itemName, img: m.img })
+            });
+          }
+          await db.collection("missions").doc(m.id).update({
+            claimedBy: firebase.firestore.FieldValue.arrayUnion(user.email)
+          });
+          alert("🎉 Recompensa reclamada!");
+          loadMissions();
+        };
+      } else {
+        claimBtn.disabled = true;
+      }
+
+      // --- Opciones admin ---
+      if(user && user.email === adminEmail){
+        const editBtns = document.createElement("div");
+        editBtns.innerHTML = `
+          <button class="edit-btn" style="margin-right:6px;padding:6px 10px;
+            background:#facc15;border:none;border-radius:6px;cursor:pointer">✏️ Editar</button>
+          <button class="delete-btn" style="padding:6px 10px;
+            background:#dc2626;color:white;border:none;border-radius:6px;cursor:pointer">🗑️ Eliminar</button>
+        `;
+        div.appendChild(editBtns);
+
+        // Editar misión
+        editBtns.querySelector(".edit-btn").onclick = async ()=>{
+          openMissionForm(m);
+        };
+
+        // Eliminar misión
+        editBtns.querySelector(".delete-btn").onclick = async ()=>{
+          if(confirm("¿Eliminar esta misión?")){
+            await db.collection("missions").doc(m.id).delete();
+            loadMissions();
+          }
+        };
+      }
+
+      list.appendChild(div);
+    });
+
+    // --- Herramientas admin: botón añadir ---
+    const adminTools = panel.querySelector("#admin-tools");
+    adminTools.innerHTML = "";
+    if(user && user.email === adminEmail){
+      const addBtn = document.createElement("button");
+      addBtn.textContent = "➕ Añadir misión";
+      Object.assign(addBtn.style, {
+        padding:"10px 16px", background:"#16a34a", color:"white",
+        border:"none", borderRadius:"8px", fontWeight:"bold", cursor:"pointer"
+      });
+      addBtn.onclick = ()=>openMissionForm();
+      adminTools.appendChild(addBtn);
+    }
+  }
+
+  // --- FORMULARIO MODERNO PARA CREAR/EDITAR ---
+  function openMissionForm(mission=null){
+    const overlay = document.createElement("div");
+    Object.assign(overlay.style, {
+      position:"fixed",top:0,left:0,width:"100%",height:"100%",
+      background:"rgba(0,0,0,0.8)",display:"flex",alignItems:"center",
+      justifyContent:"center",zIndex:"10001"
+    });
+
+    overlay.innerHTML = `
+      <div style="background:#222;padding:20px;border-radius:12px;width:400px;color:white">
+        <h3>${mission ? "✏️ Editar misión" : "➕ Nueva misión"}</h3>
+        <label>Nombre:<br><input id="mf-name" style="width:100%;padding:6px" value="${mission?.name||''}"></label><br><br>
+        <label>Tipo recompensa:<br>
+          <select id="mf-type" style="width:100%;padding:6px">
+            <option value="robux" ${mission?.rewardType==="robux"?"selected":""}>Robux</option>
+            <option value="item" ${mission?.rewardType==="item"?"selected":""}>Item</option>
+          </select>
+        </label><br><br>
+        <div id="mf-robux" style="display:${mission?.rewardType==="robux"?"block":"none"}">
+          <label>Cantidad Robux:<br><input type="number" id="mf-amount" style="width:100%;padding:6px" value="${mission?.amount||0}"></label>
+        </div>
+        <div id="mf-item" style="display:${mission?.rewardType==="item"?"block":"none"}">
+          <label>Nombre Item:<br><input id="mf-itemName" style="width:100%;padding:6px" value="${mission?.itemName||''}"></label><br><br>
+          <label>Imagen URL:<br><input id="mf-img" style="width:100%;padding:6px" value="${mission?.img||''}"></label>
+        </div><br>
+        <label>Tiempo de espera (horas):<br><input type="number" id="mf-wait" style="width:100%;padding:6px" value="${mission?.waitHours||1}"></label><br><br>
+        <button id="mf-save" style="padding:10px;background:green;color:white;border:none;border-radius:6px;font-weight:bold">
+          Guardar
+        </button>
+        <button id="mf-cancel" style="padding:10px;background:#555;color:white;border:none;border-radius:6px;margin-left:10px">
+          Cancelar
+        </button>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+
+    // Cambiar inputs según tipo
+    const typeSel = overlay.querySelector("#mf-type");
+    const robuxDiv = overlay.querySelector("#mf-robux");
+    const itemDiv = overlay.querySelector("#mf-item");
+    typeSel.onchange = ()=>{
+      robuxDiv.style.display = typeSel.value==="robux"?"block":"none";
+      itemDiv.style.display = typeSel.value==="item"?"block":"none";
+    };
+
+    // Guardar
+    overlay.querySelector("#mf-save").onclick = async ()=>{
+      const name = overlay.querySelector("#mf-name").value;
+      const rewardType = typeSel.value;
+      const waitHours = parseInt(overlay.querySelector("#mf-wait").value);
+      let data = {name, rewardType, waitHours, claimedBy:[]};
+      if(rewardType==="robux"){
+        data.amount = parseInt(overlay.querySelector("#mf-amount").value);
+      } else {
+        data.itemName = overlay.querySelector("#mf-itemName").value;
+        data.img = overlay.querySelector("#mf-img").value;
+      }
+      if(mission){
+        await db.collection("missions").doc(mission.id).update(data);
+      } else {
+        data.createdAt = firebase.firestore.Timestamp.now();
+        await db.collection("missions").add(data);
+      }
+      overlay.remove();
+      loadMissions();
+    };
+
+    // Cancelar
+    overlay.querySelector("#mf-cancel").onclick = ()=>overlay.remove();
+  }
+});
+</script>
+
 </body>
 </html>
