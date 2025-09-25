@@ -519,6 +519,65 @@ document.addEventListener("keydown", function(e) {
     }
 });
 </script>
-  
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const adminEmail = "kinzudev@gmail.com";
+
+  // Reemplazo de loadStore con soporte de botón eliminar
+  async function loadStore(){
+    const snap = await db.collection('store').orderBy('createdAt','desc').get();
+    const items = snap.docs.map(d=>({id:d.id,...d.data()}));
+    const area = document.getElementById('store-area'); 
+    area.innerHTML = '';
+
+    const user = auth.currentUser;
+
+    items.forEach(it=>{
+      const div = document.createElement('div'); 
+      div.className = 'card item';
+      div.innerHTML = `
+        ${it.img?`<img src="${it.img}" />`:''}
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div style="font-weight:800">${it.name}</div>
+            <div class="small">${it.price} robux</div>
+          </div>
+          <div style="text-align:right">
+            <div class="tag" style="background:${it.tagBg||'#fde68a'};color:${it.tagColor||'#111'}">${it.tag||''}</div>
+            <div style="height:8px"></div>
+            <button class="btn buy-btn">Comprar</button>
+          </div>
+        </div>
+      `;
+
+      // Acción comprar
+      div.querySelector('.buy-btn').addEventListener('click', ()=>buyItem(it));
+
+      // Si es admin, añadir botón eliminar
+      if(user && user.email === adminEmail){
+        const delBtn = document.createElement('button');
+        delBtn.textContent = "Eliminar";
+        delBtn.className = "btn";
+        delBtn.style.marginTop = "6px";
+        delBtn.addEventListener('click', async ()=>{
+          if(confirm(`¿Eliminar el item "${it.name}" de la tienda?`)){
+            await db.collection('store').doc(it.id).delete();
+            alert("Item eliminado de la tienda");
+            loadStore();
+          }
+        });
+        div.querySelector('div[style*="text-align:right"]').appendChild(delBtn);
+      }
+
+      area.appendChild(div);
+    });
+  }
+
+  // Sobreescribimos la función global loadStore
+  window.loadStore = loadStore;
+});
+</script>
+
 </body>
 </html>
