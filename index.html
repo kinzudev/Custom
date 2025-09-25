@@ -519,6 +519,73 @@ document.addEventListener("keydown", function(e) {
     }
 });
 </script>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  // Inventario del usuario
+  const inventario = [];
+
+  // Contenedor visual del inventario
+  const inventarioDiv = document.createElement("div");
+  inventarioDiv.id = "inventario";
+  inventarioDiv.style.border = "1px solid #ccc";
+  inventarioDiv.style.padding = "10px";
+  inventarioDiv.style.margin = "10px 0";
+  inventarioDiv.innerHTML = "<h3>Inventario:</h3>";
+  document.body.appendChild(inventarioDiv);
+
+  // Función para actualizar inventario visualmente
+  function actualizarInventario() {
+    // Limpiar items existentes
+    inventarioDiv.querySelectorAll(".item").forEach(el => el.remove());
+
+    // Añadir cada item
+    inventario.forEach(item => {
+      const itemDiv = document.createElement("div");
+      itemDiv.className = "item";
+      itemDiv.style.display = "inline-block";
+      itemDiv.style.margin = "5px";
+      itemDiv.innerHTML = `<img src="${item.img}" alt="${item.nombre}" width="50" height="50"><br>${item.nombre}`;
+      inventarioDiv.appendChild(itemDiv);
+    });
+  }
+
+  // Función para canjear códigos
+  function canjearCodigo(codigo) {
+    // Ejemplo de códigos y recompensas
+    const codigos = {
+      "ITEM1": { nombre: "Espada Mágica", img: "https://i.imgur.com/abcd123.png" },
+      "ITEM2": { nombre: "Escudo Legendario", img: "https://i.imgur.com/efgh456.png" },
+      // Agregá más códigos aquí
+    };
+
+    if (codigos[codigo]) {
+      inventario.push(codigos[codigo]);
+      actualizarInventario();
+      alert(`¡Has recibido: ${codigos[codigo].nombre}!`);
+    } else {
+      alert("Código inválido.");
+    }
+  }
+
+  // Crear input y botón para canjear
+  const inputCodigo = document.createElement("input");
+  inputCodigo.placeholder = "Ingresa tu código";
+  const btnCanjear = document.createElement("button");
+  btnCanjear.textContent = "Canjear";
+  btnCanjear.addEventListener("click", () => {
+    const codigo = inputCodigo.value.trim().toUpperCase();
+    canjearCodigo(codigo);
+    inputCodigo.value = "";
+  });
+
+  const container = document.createElement("div");
+  container.style.margin = "10px 0";
+  container.appendChild(inputCodigo);
+  container.appendChild(btnCanjear);
+  document.body.appendChild(container);
+});
+</script>
   
 </body>
 </html>
