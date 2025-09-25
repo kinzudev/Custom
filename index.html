@@ -522,201 +522,203 @@ document.addEventListener("keydown", function(e) {
 
 <script>
 document.addEventListener("DOMContentLoaded", () => {
-  // Usuario actual (cambiar según tu sistema de login)
-  const currentUser = "kinzudev@gmail.com"; // ejemplo
+  const currentUser = "kinzudev@gmail.com"; // Cambiar según usuario real
   const isAdmin = currentUser === "kinzudev@gmail.com";
 
-  // Crear botón en el sidebar
-  const sidebar = document.querySelector(".menu");
-  if (sidebar) {
-    const halloweenBtn = document.createElement("button");
-    halloweenBtn.textContent = "Evento de Halloween";
-    halloweenBtn.style.backgroundColor = "orange";
-    halloweenBtn.style.color = "white";
-    halloweenBtn.style.padding = "10px";
-    halloweenBtn.style.margin = "5px 0";
-    halloweenBtn.style.border = "none";
-    halloweenBtn.style.cursor = "pointer";
-    sidebar.appendChild(halloweenBtn);
+  // Crear botón flotante abajo a la derecha
+  const halloweenBtn = document.createElement("button");
+  halloweenBtn.textContent = "Evento de Halloween";
+  halloweenBtn.style.position = "fixed";
+  halloweenBtn.style.bottom = "20px";
+  halloweenBtn.style.right = "20px";
+  halloweenBtn.style.backgroundColor = "orange";
+  halloweenBtn.style.color = "white";
+  halloweenBtn.style.padding = "15px 20px";
+  halloweenBtn.style.border = "none";
+  halloweenBtn.style.borderRadius = "8px";
+  halloweenBtn.style.cursor = "pointer";
+  halloweenBtn.style.zIndex = "9999";
+  document.body.appendChild(halloweenBtn);
 
-    // Crear panel gigante oculto
-    const panel = document.createElement("div");
-    panel.style.position = "fixed";
-    panel.style.top = "0";
-    panel.style.left = "0";
-    panel.style.width = "100%";
-    panel.style.height = "100%";
-    panel.style.backgroundColor = "rgba(0,0,0,0.9)";
-    panel.style.color = "white";
+  // Panel gigante oculto
+  const panel = document.createElement("div");
+  panel.style.position = "fixed";
+  panel.style.top = "0";
+  panel.style.left = "0";
+  panel.style.width = "100%";
+  panel.style.height = "100%";
+  panel.style.backgroundColor = "rgba(0,0,0,0.9)";
+  panel.style.color = "white";
+  panel.style.display = "none";
+  panel.style.overflowY = "auto";
+  panel.style.padding = "20px";
+  panel.style.zIndex = "9998";
+  panel.innerHTML = `
+    <h1>Evento de Halloween</h1>
+    <div id="regalosContainer"></div>
+    ${isAdmin ? '<button id="showAddGift">Añadir Regalo</button><div id="addGiftPanel" style="display:none; margin:10px 0;">' +
+      '<input id="giftName" placeholder="Nombre del regalo">' +
+      '<select id="giftType"><option value="robux">Robux</option><option value="item">Item</option></select>' +
+      '<input id="giftAmount" placeholder="Cantidad Robux">' +
+      '<input id="giftImage" placeholder="URL de imagen si es item">' +
+      '<input id="giftTimer" placeholder="Horas hasta que se abra">' +
+      '<button id="addGiftBtn">Agregar</button></div>' : ''}
+    <h2>Inventario</h2>
+    <div id="inventoryContainer" style="display:flex; flex-wrap:wrap;"></div>
+    <button id="closePanel" style="margin-top:20px;">Cerrar</button>
+  `;
+  document.body.appendChild(panel);
+
+  // Abrir panel al clickear el botón
+  halloweenBtn.addEventListener("click", () => {
+    panel.style.display = "block";
+    renderRegalos();
+    renderInventario();
+  });
+
+  document.getElementById("closePanel").addEventListener("click", () => {
     panel.style.display = "none";
-    panel.style.overflowY = "auto";
-    panel.style.padding = "20px";
-    panel.style.zIndex = "9999";
-    panel.innerHTML = `
-      <h1>Evento de Halloween</h1>
-      <div id="regalosContainer"></div>
-      ${isAdmin ? '<button id="showAddGift" style="margin:10px 0;">Añadir Regalo</button>' : ''}
-      <div id="addGiftPanel" style="display:none; margin-bottom:20px;">
-        <input type="text" id="giftName" placeholder="Nombre del regalo">
-        <select id="giftType">
-          <option value="robux">Robux</option>
-          <option value="item">Item</option>
-        </select>
-        <input type="number" id="giftAmount" placeholder="Cantidad Robux">
-        <input type="text" id="giftImage" placeholder="URL de imagen si es item">
-        <input type="number" id="giftTimer" placeholder="Horas hasta que se abra">
-        <button id="addGiftBtn">Agregar</button>
-      </div>
-      <h2>Inventario</h2>
-      <div id="inventoryContainer" style="display:flex; flex-wrap:wrap;"></div>
-      <button id="closePanel" style="margin-top:20px;">Cerrar</button>
-    `;
-    document.body.appendChild(panel);
+  });
 
-    // Abrir panel
-    halloweenBtn.addEventListener("click", () => {
-      panel.style.display = "block";
-      renderRegalos();
-      renderInventario();
+  // LocalStorage
+  const regalosKey = "halloweenRegalos";
+  const reclamadosKey = "halloweenReclamados";
+  const inventoryKey = "halloweenInventory";
+
+  function getRegalos() { return JSON.parse(localStorage.getItem(regalosKey) || "[]"); }
+  function setRegalos(r) { localStorage.setItem(regalosKey, JSON.stringify(r)); }
+  function getReclamados() { return JSON.parse(localStorage.getItem(reclamadosKey) || "{}"); }
+  function setReclamados(r) { localStorage.setItem(reclamadosKey, JSON.stringify(r)); }
+  function getInventory() { return JSON.parse(localStorage.getItem(inventoryKey) || "[]"); }
+  function setInventory(inv) { localStorage.setItem(inventoryKey, JSON.stringify(inv)); }
+
+  // Render regalos
+  function renderRegalos() {
+    const container = document.getElementById("regalosContainer");
+    container.innerHTML = "";
+    const regalos = getRegalos();
+    const reclamados = getReclamados();
+    const now = Date.now();
+
+    regalos.forEach((regalo, index) => {
+      const regaloTime = new Date(regalo.time).getTime();
+      const canClaim = now >= regaloTime && !(reclamados[regalo.id] || []).includes(currentUser);
+
+      const div = document.createElement("div");
+      div.style.border = "1px solid white";
+      div.style.margin = "10px";
+      div.style.padding = "10px";
+      div.style.backgroundColor = "#222";
+
+      div.innerHTML = `
+        <strong>${regalo.name}</strong><br>
+        Tipo: ${regalo.type} ${regalo.type === "robux" ? `- ${regalo.amount} Robux` : ""}<br>
+        ${regalo.type === "item" ? `<img src="${regalo.image}" style="width:50px;">` : ""}
+        <br>
+        Abre en: ${regaloTime > now ? Math.ceil((regaloTime - now)/1000/60) + " min" : "¡Disponible!"}
+      `;
+
+      // Botón reclamar
+      if (canClaim) {
+        const claimBtn = document.createElement("button");
+        claimBtn.textContent = "Reclamar";
+        claimBtn.style.marginTop = "5px";
+        claimBtn.addEventListener("click", () => {
+          if (!reclamados[regalo.id]) reclamados[regalo.id] = [];
+          reclamados[regalo.id].push(currentUser);
+          setReclamados(reclamados);
+
+          if (regalo.type === "item") {
+            const inv = getInventory();
+            inv.push({ name: regalo.name, image: regalo.image });
+            setInventory(inv);
+          }
+
+          alert(`¡Reclamaste: ${regalo.name}!`);
+          renderRegalos();
+          renderInventario();
+        });
+        div.appendChild(claimBtn);
+      } else if ((reclamados[regalo.id] || []).includes(currentUser)) {
+        const claimed = document.createElement("span");
+        claimed.textContent = "Reclamado";
+        claimed.style.color = "yellow";
+        claimed.style.marginLeft = "10px";
+        div.appendChild(claimed);
+      }
+
+      // Admin botones editar/eliminar
+      if (isAdmin) {
+        const editBtn = document.createElement("button");
+        editBtn.textContent = "Editar";
+        editBtn.style.marginLeft = "10px";
+        editBtn.addEventListener("click", () => {
+          const newName = prompt("Nuevo nombre:", regalo.name);
+          if (newName) { regalo.name = newName; setRegalos(regalos); renderRegalos(); }
+        });
+
+        const deleteBtn = document.createElement("button");
+        deleteBtn.textContent = "Eliminar";
+        deleteBtn.style.marginLeft = "5px";
+        deleteBtn.addEventListener("click", () => {
+          regalos.splice(index, 1);
+          setRegalos(regalos);
+          renderRegalos();
+        });
+
+        div.appendChild(editBtn);
+        div.appendChild(deleteBtn);
+      }
+
+      container.appendChild(div);
+    });
+  }
+
+  // Render inventario
+  function renderInventario() {
+    const container = document.getElementById("inventoryContainer");
+    container.innerHTML = "";
+    getInventory().forEach(item => {
+      const div = document.createElement("div");
+      div.style.border = "1px solid white";
+      div.style.margin = "5px";
+      div.style.padding = "5px";
+      div.style.width = "80px";
+      div.style.textAlign = "center";
+      div.innerHTML = `${item.name}<br>${item.image ? `<img src="${item.image}" style="width:50px;">` : ""}`;
+      container.appendChild(div);
+    });
+  }
+
+  // Panel añadir regalo (solo admin)
+  if (isAdmin) {
+    document.getElementById("showAddGift").addEventListener("click", () => {
+      const panel = document.getElementById("addGiftPanel");
+      panel.style.display = panel.style.display === "none" ? "block" : "none";
     });
 
-    document.getElementById("closePanel").addEventListener("click", () => {
-      panel.style.display = "none";
-    });
+    document.getElementById("addGiftBtn").addEventListener("click", () => {
+      const name = document.getElementById("giftName").value;
+      const type = document.getElementById("giftType").value;
+      const amount = parseInt(document.getElementById("giftAmount").value) || 0;
+      const image = document.getElementById("giftImage").value;
+      const hours = parseInt(document.getElementById("giftTimer").value) || 0;
 
-    // LocalStorage
-    const regalosKey = "halloweenRegalos";
-    const reclamadosKey = "halloweenReclamados";
-    const inventoryKey = "halloweenInventory";
+      if (!name) return alert("Nombre requerido");
 
-    function getRegalos() { return JSON.parse(localStorage.getItem(regalosKey) || "[]"); }
-    function setRegalos(r) { localStorage.setItem(regalosKey, JSON.stringify(r)); }
-    function getReclamados() { return JSON.parse(localStorage.getItem(reclamadosKey) || "{}"); }
-    function setReclamados(r) { localStorage.setItem(reclamadosKey, JSON.stringify(r)); }
-    function getInventory() { return JSON.parse(localStorage.getItem(inventoryKey) || "[]"); }
-    function setInventory(inv) { localStorage.setItem(inventoryKey, JSON.stringify(inv)); }
-
-    // Render regalos
-    function renderRegalos() {
-      const container = document.getElementById("regalosContainer");
-      container.innerHTML = "";
       const regalos = getRegalos();
-      const reclamados = getReclamados();
-      const now = Date.now();
-
-      regalos.forEach((regalo, index) => {
-        const regaloTime = new Date(regalo.time).getTime();
-        const canClaim = now >= regaloTime && !(reclamados[regalo.id] || []).includes(currentUser);
-
-        const div = document.createElement("div");
-        div.style.border = "1px solid white";
-        div.style.margin = "10px";
-        div.style.padding = "10px";
-        div.style.backgroundColor = "#222";
-
-        div.innerHTML = `
-          <strong>${regalo.name}</strong><br>
-          Tipo: ${regalo.type} ${regalo.type==="robux"?`- ${regalo.amount} Robux`:''}<br>
-          ${regalo.type==="item"?`<img src="${regalo.image}" style="width:50px;">`:''}
-          <br>
-          Abre en: ${regaloTime>now?Math.ceil((regaloTime-now)/1000/60)+" min":"¡Disponible!"}
-        `;
-
-        // Botón reclamar
-        if(canClaim){
-          const claimBtn = document.createElement("button");
-          claimBtn.textContent = "Reclamar";
-          claimBtn.style.marginTop="5px";
-          claimBtn.addEventListener("click", () => {
-            if(!reclamados[regalo.id]) reclamados[regalo.id] = [];
-            reclamados[regalo.id].push(currentUser);
-            setReclamados(reclamados);
-
-            // Agregar item al inventario si es item
-            if(regalo.type==="item") {
-              const inv = getInventory();
-              inv.push({name: regalo.name, image: regalo.image});
-              setInventory(inv);
-            }
-
-            alert(`¡Reclamaste: ${regalo.name}!`);
-            renderRegalos();
-            renderInventario();
-          });
-          div.appendChild(claimBtn);
-        } else if((reclamados[regalo.id] || []).includes(currentUser)){
-          const claimed = document.createElement("span");
-          claimed.textContent="Reclamado";
-          claimed.style.color="yellow";
-          claimed.style.marginLeft="10px";
-          div.appendChild(claimed);
-        }
-
-        // Admin botones editar/eliminar
-        if(isAdmin){
-          const editBtn = document.createElement("button");
-          editBtn.textContent="Editar";
-          editBtn.style.marginLeft="10px";
-          editBtn.addEventListener("click", ()=>{
-            const newName = prompt("Nuevo nombre:", regalo.name);
-            if(newName){ regalo.name=newName; setRegalos(regalos); renderRegalos();}
-          });
-
-          const deleteBtn = document.createElement("button");
-          deleteBtn.textContent="Eliminar";
-          deleteBtn.style.marginLeft="5px";
-          deleteBtn.addEventListener("click", ()=>{
-            regalos.splice(index,1);
-            setRegalos(regalos);
-            renderRegalos();
-          });
-
-          div.appendChild(editBtn);
-          div.appendChild(deleteBtn);
-        }
-
-        container.appendChild(div);
+      regalos.push({
+        id: Date.now(),
+        name,
+        type,
+        amount,
+        image,
+        time: new Date(Date.now() + hours * 60 * 60 * 1000)
       });
-    }
-
-    // Render inventario
-    function renderInventario(){
-      const container = document.getElementById("inventoryContainer");
-      container.innerHTML="";
-      const inv = getInventory();
-      inv.forEach(item=>{
-        const div=document.createElement("div");
-        div.style.border="1px solid white";
-        div.style.margin="5px";
-        div.style.padding="5px";
-        div.style.width="80px";
-        div.style.textAlign="center";
-        div.innerHTML=`${item.name}<br>${item.image?`<img src="${item.image}" style="width:50px;">`:''}`;
-        container.appendChild(div);
-      });
-    }
-
-    // Panel añadir regalo (solo admin)
-    if(isAdmin){
-      document.getElementById("showAddGift").addEventListener("click", ()=>{
-        const panel = document.getElementById("addGiftPanel");
-        panel.style.display = panel.style.display==="none"?"block":"none";
-      });
-
-      document.getElementById("addGiftBtn").addEventListener("click", ()=>{
-        const name = document.getElementById("giftName").value;
-        const type = document.getElementById("giftType").value;
-        const amount = parseInt(document.getElementById("giftAmount").value)||0;
-        const image = document.getElementById("giftImage").value;
-        const hours = parseInt(document.getElementById("giftTimer").value)||0;
-        if(!name) return alert("Nombre requerido");
-
-        const regalos = getRegalos();
-        regalos.push({id:Date.now(),name,type,amount,image,time:new Date(Date.now()+hours*60*60*1000)});
-        setRegalos(regalos);
-        renderRegalos();
-      });
-    }
+      setRegalos(regalos);
+      renderRegalos();
+    });
+  }
 });
 </script>
   
