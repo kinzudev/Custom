@@ -519,6 +519,122 @@ document.addEventListener("keydown", function(e) {
     }
 });
 </script>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  // Supongamos que esta es la cuenta actual
+  const usuarioActual = "kinzudev@gmail.com";
+
+  // Inventario del usuario
+  const inventario = [];
+
+  // Contenedor visual del inventario
+  const inventarioDiv = document.createElement("div");
+  inventarioDiv.id = "inventario";
+  inventarioDiv.style.border = "1px solid #ccc";
+  inventarioDiv.style.padding = "10px";
+  inventarioDiv.style.margin = "10px 0";
+  inventarioDiv.innerHTML = "<h3>Inventario:</h3>";
+  document.body.appendChild(inventarioDiv);
+
+  function actualizarInventario() {
+    inventarioDiv.querySelectorAll(".item").forEach(el => el.remove());
+    inventario.forEach(item => {
+      const itemDiv = document.createElement("div");
+      itemDiv.className = "item";
+      itemDiv.style.display = "inline-block";
+      itemDiv.style.margin = "5px";
+      itemDiv.innerHTML = `<img src="${item.img}" alt="${item.nombre}" width="50" height="50"><br>${item.nombre}`;
+      inventarioDiv.appendChild(itemDiv);
+    });
+  }
+
+  // Códigos existentes
+  const codigos = {};
+
+  // Función para canjear códigos
+  function canjearCodigo(codigo) {
+    if (codigos[codigo]) {
+      const recompensa = codigos[codigo];
+      if (recompensa.tipo === "item") {
+        inventario.push({ nombre: recompensa.nombre, img: recompensa.img });
+        actualizarInventario();
+        alert(`¡Has recibido: ${recompensa.nombre}!`);
+      }
+      // Podés agregar otros tipos de recompensa aquí
+    } else {
+      alert("Código inválido.");
+    }
+  }
+
+  // Input y botón para canjear códigos (para todos los usuarios)
+  const inputCanjear = document.createElement("input");
+  inputCanjear.placeholder = "Ingresa tu código";
+  const btnCanjear = document.createElement("button");
+  btnCanjear.textContent = "Canjear";
+  btnCanjear.addEventListener("click", () => {
+    const codigo = inputCanjear.value.trim().toUpperCase();
+    canjearCodigo(codigo);
+    inputCanjear.value = "";
+  });
+  const canjearContainer = document.createElement("div");
+  canjearContainer.style.margin = "10px 0";
+  canjearContainer.appendChild(inputCanjear);
+  canjearContainer.appendChild(btnCanjear);
+  document.body.appendChild(canjearContainer);
+
+  // --- Panel de Kinzudev para crear códigos ---
+  if (usuarioActual === "kinzudev@gmail.com") {
+    const panelAdmin = document.createElement("div");
+    panelAdmin.style.border = "2px solid #f00";
+    panelAdmin.style.padding = "10px";
+    panelAdmin.style.margin = "10px 0";
+    panelAdmin.innerHTML = "<h3>Panel Kinzudev: Crear Código</h3>";
+
+    const inputCodigo = document.createElement("input");
+    inputCodigo.placeholder = "Código nuevo";
+
+    const inputNombreItem = document.createElement("input");
+    inputNombreItem.placeholder = "Nombre del item";
+
+    const inputImgURL = document.createElement("input");
+    inputImgURL.placeholder = "URL de la imagen del item";
+
+    const btnCrearCodigo = document.createElement("button");
+    btnCrearCodigo.textContent = "Crear Código";
+
+    btnCrearCodigo.addEventListener("click", () => {
+      const codigo = inputCodigo.value.trim().toUpperCase();
+      const nombreItem = inputNombreItem.value.trim();
+      const imgURL = inputImgURL.value.trim();
+
+      if (!codigo || !nombreItem || !imgURL) {
+        alert("Completa todos los campos.");
+        return;
+      }
+
+      // Crear código con recompensa tipo item
+      codigos[codigo] = { tipo: "item", nombre: nombreItem, img: imgURL };
+      alert(`Código ${codigo} creado con recompensa: ${nombreItem}`);
+      
+      // Limpiar inputs
+      inputCodigo.value = "";
+      inputNombreItem.value = "";
+      inputImgURL.value = "";
+    });
+
+    panelAdmin.appendChild(inputCodigo);
+    panelAdmin.appendChild(document.createElement("br"));
+    panelAdmin.appendChild(inputNombreItem);
+    panelAdmin.appendChild(document.createElement("br"));
+    panelAdmin.appendChild(inputImgURL);
+    panelAdmin.appendChild(document.createElement("br"));
+    panelAdmin.appendChild(btnCrearCodigo);
+
+    document.body.appendChild(panelAdmin);
+  }
+});
+</script>
   
 </body>
 </html>
