@@ -521,243 +521,111 @@ document.addEventListener("keydown", function(e) {
 </script>
 
 <script>
-document.addEventListener("DOMContentLoaded", () => {
-  const sidebar = document.querySelector(".menu");
-  if (sidebar) {
-    const tradeBtn = document.createElement("button");
-    tradeBtn.textContent = "Trade";
-    tradeBtn.className = "btn";
-    tradeBtn.onclick = () => showView("trade");
-    sidebar.appendChild(tradeBtn);
-  }
+// ================= CHAT GLOBAL ==================
+const chatArea = document.createElement("div");
+chatArea.id = "chat-area";
+chatArea.style.display = "none";
+chatArea.innerHTML = `
+  <div style="padding:10px; background:#111; color:white;">
+    <h3>Chat Global</h3>
+    <div id="messages" style="height:250px; overflow-y:auto; border:1px solid #333; padding:5px; background:#222; margin-bottom:10px;"></div>
+    <input id="chatInput" type="text" placeholder="Escribe un mensaje..." style="width:80%; padding:5px;" />
+    <button id="sendMsg" class="btn">Enviar</button>
+  </div>
+`;
+document.getElementById("main").appendChild(chatArea);
 
-  // Crear vista de trade
-  const tradeView = document.createElement("div");
-  tradeView.id = "view-trade";
-  tradeView.className = "hidden";
-  tradeView.innerHTML = `
-    <h2>Trade Chat</h2>
-    <div id="trade-messages" style="border:1px solid #333; height:200px; overflow:auto; margin-bottom:10px;"></div>
-    <input id="trade-msg-input" placeholder="Escribe un mensaje..." style="width:80%;">
-    <button id="send-trade-msg" class="btn">Enviar</button>
-  `;
-  document.getElementById("content").appendChild(tradeView);
+// Botón en el sidebar
+const tradeBtn = document.createElement("button");
+tradeBtn.textContent = "Trade / Chat";
+tradeBtn.className = "btn";
+tradeBtn.onclick = () => {
+  chatArea.style.display = chatArea.style.display === "none" ? "block" : "none";
+  loadMessages();
+};
+document.querySelector(".menu").appendChild(tradeBtn);
 
-  const tradeMessages = document.getElementById("trade-messages");
-  const tradeInput = document.getElementById("trade-msg-input");
-  const sendTradeMsgBtn = document.getElementById("send-trade-msg");
+// ================= FIREBASE CHAT =================
+const messagesRef = db.collection("messages");
 
-  // Firestore chat simple
-  let tradeUnsub = null;
-  function loadTradeChat() {
-    const user = auth.currentUser;
-    if (!user) return;
-    if (tradeUnsub) tradeUnsub();
-    tradeUnsub = db.collection("tradeChat").orderBy("createdAt")
-      .onSnapshot(snap => {
-        tradeMessages.innerHTML = "";
-        snap.forEach(doc => {
-          const d = doc.data();
-          const div = document.createElement("div");
-          div.style.marginBottom = "4px";
-          div.innerHTML = `<b>${d.from}</b>: ${d.text}`;
-          // Botón trade al lado del nombre (menos yo)
-          if (d.from !== user.email) {
-            const btn = document.createElement("button");
-            btn.textContent = "Trade";
-            btn.className = "btn";
-            btn.style.marginLeft = "6px";
-            btn.onclick = () => openTradePanel(d.from);
-            div.appendChild(btn);
-          }
-          tradeMessages.appendChild(div);
-        });
-      });
-  }
-
-  sendTradeMsgBtn.addEventListener("click", async () => {
-    const user = auth.currentUser;
-    if (!user) return;
-    const text = tradeInput.value.trim();
-    if (!text) return;
-    await db.collection("tradeChat").add({
-      from: user.email,
-      text,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+async function loadMessages(){
+  messagesRef.orderBy("timestamp","asc").onSnapshot(snap=>{
+    const msgDiv = document.getElementById("messages");
+    msgDiv.innerHTML = "";
+    snap.forEach(doc=>{
+      const m = doc.data();
+      const div = document.createElement("div");
+      div.style.marginBottom = "5px";
+      div.innerHTML = `
+        <b>${m.sender}</b>: ${m.text}
+        ${m.sender !== auth.currentUser.email ? 
+          `<button class="btn tradeUserBtn" data-user="${m.sender}">Trade</button>` : ""}
+      `;
+      msgDiv.appendChild(div);
     });
-    tradeInput.value = "";
-  });
 
-  // Panel de trade
+    // Event listeners para botones Trade
+    document.querySelectorAll(".tradeUserBtn").forEach(btn=>{
+      btn.onclick = () => openTradePanel(btn.dataset.user);
+    });
+  });
+}
+
+document.getElementById("sendMsg").onclick = async () => {
+  const input = document.getElementById("chatInput");
+  if(input.value.trim() === "") return;
+  await messagesRef.add({
+    sender: auth.currentUser.email,
+    text: input.value,
+    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+  });
+  input.value = "";
+};
+
+// ================= SISTEMA DE TRADE =================
+function openTradePanel(otherUser){
   const tradePanel = document.createElement("div");
-  tradePanel.style.position = "fixed";
-  tradePanel.style.top = "0";
-  tradePanel.style.left = "0";
-  tradePanel.style.width = "100%";
-  tradePanel.style.height = "100%";
-  tradePanel.style.background = "rgba(0,0,0,0.9)";
-  tradePanel.style.color = "#fff";
-  tradePanel.style.display = "none";
-  tradePanel.style.zIndex = "9999";
-  tradePanel.style.overflow = "auto";
-  tradePanel.innerHTML = `
-    <div style="padding:20px;">
-      <h2>Trade Panel</h2>
+  tradePanel.style.position="fixed";
+  tradePanel.style.top="0";
+  tradePanel.style.left="0";
+  tradePanel.style.width="100%";
+  tradePanel.style.height="100%";
+  tradePanel.style.background="rgba(0,0,0,0.8)";
+  tradePanel.style.color="white";
+  tradePanel.style.padding="20px";
+  tradePanel.style.zIndex="9999";
+  tradePanel.innerHTML=`
+    <div style="background:#111; padding:20px; border-radius:10px; max-width:900px; margin:40px auto;">
+      <h2>Trade con ${otherUser}</h2>
       <div style="display:flex; gap:20px;">
         <div style="flex:1;">
-          <h3>Tu Inventario</h3>
-          <div id="my-inv"></div>
+          <h3>Tu inventario</h3>
+          <div id="myInventory"></div>
         </div>
         <div style="flex:1;">
-          <h3>Inventario de Otro</h3>
-          <div id="other-inv"></div>
+          <h3>Inventario de ${otherUser}</h3>
+          <div id="otherInventory"></div>
         </div>
       </div>
-      <button id="send-trade" class="btn">Enviar</button>
-      <button id="reject-trade" class="btn">Rechazar</button>
+      <div style="margin-top:20px; display:flex; gap:10px; justify-content:center;">
+        <button id="sendTrade" class="btn">Enviar</button>
+        <button id="cancelTrade" class="btn">Rechazar</button>
+      </div>
     </div>
   `;
   document.body.appendChild(tradePanel);
 
-  let currentTradeTarget = null;
-  let selectedMyItems = [];
-  let selectedOtherItems = [];
-
-  async function openTradePanel(targetEmail) {
-    currentTradeTarget = targetEmail;
-    selectedMyItems = [];
-    selectedOtherItems = [];
-    tradePanel.style.display = "block";
-
-    const user = auth.currentUser;
-    if (!user) return;
-
-    // Cargar inventario propio
-    const mySnap = await db.collection("users").doc(user.uid).get();
-    const myData = mySnap.data();
-    const myInvDiv = document.getElementById("my-inv");
-    myInvDiv.innerHTML = "";
-    (myData.inventory || []).forEach(it => {
-      const div = document.createElement("div");
-      div.innerHTML = `<img src="${it.img}" width="40"> ${it.name}`;
-      div.style.cursor = "pointer";
-      div.onclick = () => {
-        if (selectedMyItems.includes(it)) {
-          selectedMyItems = selectedMyItems.filter(x => x !== it);
-          div.style.background = "";
-        } else {
-          selectedMyItems.push(it);
-          div.style.background = "green";
-        }
-      };
-      myInvDiv.appendChild(div);
-    });
-
-    // Cargar inventario de otro
-    const otherSnap = await db.collection("users").where("email","==",targetEmail).get();
-    if (!otherSnap.empty) {
-      const otherData = otherSnap.docs[0].data();
-      const otherInvDiv = document.getElementById("other-inv");
-      otherInvDiv.innerHTML = "";
-      (otherData.inventory || []).forEach(it => {
-        const div = document.createElement("div");
-        div.innerHTML = `<img src="${it.img}" width="40"> ${it.name}`;
-        div.style.cursor = "pointer";
-        div.onclick = () => {
-          if (selectedOtherItems.includes(it)) {
-            selectedOtherItems = selectedOtherItems.filter(x => x !== it);
-            div.style.background = "";
-          } else {
-            selectedOtherItems.push(it);
-            div.style.background = "blue";
-          }
-        };
-        otherInvDiv.appendChild(div);
-      });
-    }
-  }
-
-  document.getElementById("send-trade").onclick = async () => {
-    const user = auth.currentUser;
-    if (!user || !currentTradeTarget) return;
-    await db.collection("trades").add({
-      from: user.email,
-      to: currentTradeTarget,
-      offer: selectedMyItems,
-      request: selectedOtherItems,
-      status: "pending",
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
-    alert("Trade enviado!");
-    tradePanel.style.display = "none";
+  // Botones dentro del panel
+  tradePanel.querySelector("#cancelTrade").onclick=()=>tradePanel.remove();
+  tradePanel.querySelector("#sendTrade").onclick=()=>{
+    alert(`Tienes un tradeo pendiente con ${otherUser}!`);
+    tradePanel.remove();
   };
 
-  document.getElementById("reject-trade").onclick = () => {
-    tradePanel.style.display = "none";
-  };
-
-  // Escuchar trades pendientes
-  auth.onAuthStateChanged(user => {
-    if (!user) return;
-    db.collection("trades")
-      .where("to","==",user.email)
-      .where("status","==","pending")
-      .onSnapshot(snap => {
-        snap.forEach(doc => {
-          const d = doc.data();
-          if (confirm("Tienes un tradeo pendiente, ¿quieres verlo?")) {
-            // Abrir panel con detalles
-            selectedMyItems = [];
-            selectedOtherItems = [];
-            tradePanel.style.display = "block";
-            currentTradeTarget = d.from;
-            // Mostrar qué ofrece cada uno
-            document.getElementById("my-inv").innerHTML = d.request.map(it => `<div><img src="${it.img}" width="40"> ${it.name}</div>`).join("");
-            document.getElementById("other-inv").innerHTML = d.offer.map(it => `<div><img src="${it.img}" width="40"> ${it.name}</div>`).join("");
-            document.getElementById("send-trade").onclick = async () => {
-              // Aceptar: transferir items
-              const userRef = db.collection("users").doc(user.uid);
-              const otherSnap = await db.collection("users").where("email","==",d.from).get();
-              if (!otherSnap.empty) {
-                const otherRef = db.collection("users").doc(otherSnap.docs[0].id);
-                // Sacar mis items
-                await userRef.update({
-                  inventory: firebase.firestore.FieldValue.arrayRemove(...d.request)
-                });
-                // Agregar items que me ofrecen
-                for (const it of d.offer) {
-                  await userRef.update({
-                    inventory: firebase.firestore.FieldValue.arrayUnion(it)
-                  });
-                }
-                // Sacar items del otro
-                await otherRef.update({
-                  inventory: firebase.firestore.FieldValue.arrayRemove(...d.offer)
-                });
-                // Agregar mis items al otro
-                for (const it of d.request) {
-                  await otherRef.update({
-                    inventory: firebase.firestore.FieldValue.arrayUnion(it)
-                  });
-                }
-                await db.collection("trades").doc(doc.id).update({status:"done"});
-                alert("Trade completado!");
-                tradePanel.style.display = "none";
-              }
-            };
-            document.getElementById("reject-trade").onclick = async () => {
-              await db.collection("trades").doc(doc.id).update({status:"rejected"});
-              alert("Trade rechazado");
-              tradePanel.style.display = "none";
-            };
-          }
-        });
-      });
-  });
-
-  // Inicializar vista trade cuando entres
-  document.querySelector("[data-view='trade']")?.addEventListener("click", loadTradeChat);
-});
+  // TODO: cargar inventarios reales desde Firebase
+  tradePanel.querySelector("#myInventory").innerHTML = "<p>(Tus items aquí)</p>";
+  tradePanel.querySelector("#otherInventory").innerHTML = "<p>(Items de la otra persona aquí)</p>";
+}
 </script>
   
 </body>
