@@ -519,6 +519,58 @@ document.addEventListener("keydown", function(e) {
     }
 });
 </script>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const currentUser = "kinzudev@gmail.com"; // Cambiar según usuario actual
+  const isAdmin = currentUser === "kinzudev@gmail.com";
+
+  if (!isAdmin) return; // Solo ejecuta para el admin
+
+  // Función para renderizar botones de eliminar en la tienda
+  function addDeleteButtonsToStore() {
+    // Suponemos que los items de la tienda tienen la clase "store-item"
+    const storeItems = document.querySelectorAll(".store-item");
+
+    storeItems.forEach(item => {
+      // Evitar duplicar botones
+      if (item.querySelector(".admin-delete-btn")) return;
+
+      const deleteBtn = document.createElement("button");
+      deleteBtn.textContent = "Eliminar";
+      deleteBtn.className = "admin-delete-btn";
+      deleteBtn.style.marginLeft = "10px";
+      deleteBtn.style.backgroundColor = "red";
+      deleteBtn.style.color = "white";
+      deleteBtn.style.border = "none";
+      deleteBtn.style.padding = "3px 6px";
+      deleteBtn.style.cursor = "pointer";
+      deleteBtn.style.borderRadius = "4px";
+
+      deleteBtn.addEventListener("click", () => {
+        // Solo eliminar de la tienda (DOM)
+        item.remove();
+        alert("Item eliminado de la tienda, pero permanece en el inventario de los jugadores.");
+      });
+
+      // Insertar el botón al lado del item
+      item.appendChild(deleteBtn);
+    });
+  }
+
+  // Ejecutar la función inicialmente
+  addDeleteButtonsToStore();
+
+  // Observar cambios futuros en la tienda para agregar botones a nuevos items
+  const storeContainer = document.querySelector(".store-container"); // contenedor de los items
+  if (storeContainer) {
+    const observer = new MutationObserver(() => {
+      addDeleteButtonsToStore();
+    });
+    observer.observe(storeContainer, { childList: true, subtree: true });
+  }
+});
+</script>
   
 </body>
 </html>
