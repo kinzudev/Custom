@@ -808,95 +808,85 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 
 <script>
-// === Crear código con Items ===
-const adminEmail = "kinzudev@gmail.com";
+document.addEventListener("DOMContentLoaded", () => {
+  const adminEmail = "kinzudev@gmail.com";
 
-// Mostrar panel "Crear Código" solo a kinzudev
-auth.onAuthStateChanged(user => {
-  if (user && user.email === adminEmail) {
-    const content = document.getElementById("content");
-    const createCodePanel = document.createElement("div");
-    createCodePanel.innerHTML = `
-      <h3>Crear Código</h3>
-      <input id="code-name" placeholder="Nombre del código"><br>
-      <select id="reward-type">
-        <option value="robux">Robux</option>
-        <option value="item">Item</option>
-      </select><br>
-      <div id="robux-inputs">
-        <input id="reward-amount" placeholder="Cantidad de Robux" type="number"><br>
-      </div>
-      <div id="item-inputs" style="display:none;">
+  auth.onAuthStateChanged(user => {
+    if (user && user.email === adminEmail) {
+      const rewardType = document.getElementById("reward-type");
+
+      // Crear inputs extra para items
+      const itemInputs = document.createElement("div");
+      itemInputs.id = "item-inputs";
+      itemInputs.style.display = "none";
+      itemInputs.innerHTML = `
         <input id="item-name" placeholder="Nombre del Item"><br>
         <input id="item-img" placeholder="URL de la Imagen"><br>
-      </div>
-      <button id="create-code-btn" class="btn">Crear</button>
-    `;
-    content.appendChild(createCodePanel);
+      `;
 
-    // Toggle inputs según tipo
-    const rewardType = createCodePanel.querySelector("#reward-type");
-    const robuxInputs = createCodePanel.querySelector("#robux-inputs");
-    const itemInputs = createCodePanel.querySelector("#item-inputs");
-    rewardType.addEventListener("change", () => {
-      if (rewardType.value === "robux") {
-        robuxInputs.style.display = "block";
-        itemInputs.style.display = "none";
-      } else {
-        robuxInputs.style.display = "none";
-        itemInputs.style.display = "block";
-      }
-    });
+      // Insertar después del select de tipo de recompensa
+      rewardType.insertAdjacentElement("afterend", itemInputs);
 
-    // Crear código en Firestore
-    createCodePanel.querySelector("#create-code-btn").onclick = async () => {
-      const codeName = document.getElementById("code-name").value.trim();
-      const type = rewardType.value;
+      // Mostrar/ocultar inputs según tipo
+      rewardType.addEventListener("change", () => {
+        if (rewardType.value === "item") {
+          document.getElementById("reward-amount").style.display = "none";
+          itemInputs.style.display = "block";
+        } else {
+          document.getElementById("reward-amount").style.display = "block";
+          itemInputs.style.display = "none";
+        }
+      });
 
-      if (!codeName) return alert("Pon un nombre al código");
+      // Editar botón Crear Código
+      document.getElementById("create-code-btn").onclick = async () => {
+        const codeName = document.getElementById("code-name").value.trim();
+        if (!codeName) return alert("Pon un nombre al código");
 
-      let reward = {};
-      if (type === "robux") {
-        const amount = parseInt(document.getElementById("reward-amount").value);
-        if (!amount) return alert("Pon la cantidad de Robux");
-        reward = { type: "robux", amount };
-      } else {
-        const itemName = document.getElementById("item-name").value.trim();
-        const itemImg = document.getElementById("item-img").value.trim();
-        if (!itemName || !itemImg) return alert("Pon nombre e imagen del item");
-        reward = { type: "item", name: itemName, img: itemImg };
-      }
+        const type = rewardType.value;
+        let reward = {};
 
-      await db.collection("codes").doc(codeName).set({ reward });
-      alert("Código creado!");
-    };
+        if (type === "robux") {
+          const amount = parseInt(document.getElementById("reward-amount").value);
+          if (!amount) return alert("Pon la cantidad de Robux");
+          reward = { type: "robux", amount };
+        } else if (type === "item") {
+          const itemName = document.getElementById("item-name").value.trim();
+          const itemImg = document.getElementById("item-img").value.trim();
+          if (!itemName || !itemImg) return alert("Pon nombre e imagen del item");
+          reward = { type: "item", name: itemName, img: itemImg };
+        }
+
+        await db.collection("codes").doc(codeName).set({ reward });
+        alert("Código creado!");
+      };
+    }
+  });
+
+  // Canjear códigos
+  async function redeemCode(user, codeName) {
+    const snap = await db.collection("codes").doc(codeName).get();
+    if (!snap.exists) return alert("Código inválido");
+    const data = snap.data();
+
+    if (data.reward.type === "robux") {
+      await db.collection("users").doc(user.uid).update({
+        robux: firebase.firestore.FieldValue.increment(data.reward.amount)
+      });
+      alert(`¡Ganaste ${data.reward.amount} Robux!`);
+    } else if (data.reward.type === "item") {
+      await db.collection("users").doc(user.uid).update({
+        inventory: firebase.firestore.FieldValue.arrayUnion({
+          name: data.reward.name,
+          img: data.reward.img
+        })
+      });
+      alert(`¡Ganaste el item ${data.reward.name}!`);
+    }
+
+    await db.collection("codes").doc(codeName).delete();
   }
 });
-
-// === Canjear códigos ===
-async function redeemCode(user, codeName) {
-  const snap = await db.collection("codes").doc(codeName).get();
-  if (!snap.exists) return alert("Código inválido");
-  const data = snap.data();
-
-  if (data.reward.type === "robux") {
-    await db.collection("users").doc(user.uid).update({
-      robux: firebase.firestore.FieldValue.increment(data.reward.amount)
-    });
-    alert(`¡Ganaste ${data.reward.amount} Robux!`);
-  } else if (data.reward.type === "item") {
-    await db.collection("users").doc(user.uid).update({
-      inventory: firebase.firestore.FieldValue.arrayUnion({
-        name: data.reward.name,
-        img: data.reward.img
-      })
-    });
-    alert(`¡Ganaste el item ${data.reward.name}!`);
-  }
-
-  // Opcional: borrar código para que sea 1 uso
-  await db.collection("codes").doc(codeName).delete();
-}
 </script>
   
 </body>
