@@ -814,43 +814,31 @@ document.addEventListener("DOMContentLoaded", () => {
   auth.onAuthStateChanged(user => {
     if (user && user.email === adminEmail) {
       const rewardType = document.getElementById("reward-type");
+      const itemInputs = document.getElementById("item-inputs");
+      const rewardAmount = document.getElementById("reward-amount");
 
-      // Crear inputs extra para items
-      const itemInputs = document.createElement("div");
-      itemInputs.id = "item-inputs";
-      itemInputs.style.display = "none";
-      itemInputs.innerHTML = `
-        <input id="item-name" placeholder="Nombre del Item"><br>
-        <input id="item-img" placeholder="URL de la Imagen"><br>
-      `;
-
-      // Insertar después del select de tipo de recompensa
-      rewardType.insertAdjacentElement("afterend", itemInputs);
-
-      // Mostrar/ocultar inputs según tipo
+      // Mostrar/ocultar inputs según selección
       rewardType.addEventListener("change", () => {
         if (rewardType.value === "item") {
-          document.getElementById("reward-amount").style.display = "none";
+          rewardAmount.style.display = "none";
           itemInputs.style.display = "block";
         } else {
-          document.getElementById("reward-amount").style.display = "block";
+          rewardAmount.style.display = "block";
           itemInputs.style.display = "none";
         }
       });
 
-      // Editar botón Crear Código
+      // Crear código
       document.getElementById("create-code-btn").onclick = async () => {
         const codeName = document.getElementById("code-name").value.trim();
         if (!codeName) return alert("Pon un nombre al código");
 
-        const type = rewardType.value;
         let reward = {};
-
-        if (type === "robux") {
-          const amount = parseInt(document.getElementById("reward-amount").value);
+        if (rewardType.value === "robux") {
+          const amount = parseInt(rewardAmount.value);
           if (!amount) return alert("Pon la cantidad de Robux");
           reward = { type: "robux", amount };
-        } else if (type === "item") {
+        } else if (rewardType.value === "item") {
           const itemName = document.getElementById("item-name").value.trim();
           const itemImg = document.getElementById("item-img").value.trim();
           if (!itemName || !itemImg) return alert("Pon nombre e imagen del item");
@@ -863,7 +851,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // Canjear códigos
+  // Función para canjear
   async function redeemCode(user, codeName) {
     const snap = await db.collection("codes").doc(codeName).get();
     if (!snap.exists) return alert("Código inválido");
