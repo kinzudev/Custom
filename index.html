@@ -922,6 +922,116 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 </script>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  let deferredPrompt;
+
+  // Capturar evento de instalación PWA
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e; // Guardamos el evento para invocarlo después
+  });
+
+  // --- BOTÓN INSTALAR ---
+  const btnInstall = document.createElement("button");
+  btnInstall.textContent = "Instalar";
+  Object.assign(btnInstall.style, {
+    position: "fixed",
+    top: "20px",
+    right: "20px",
+    zIndex: "9999",
+    padding: "12px 20px",
+    background: "green",
+    color: "white",
+    fontWeight: "bold",
+    border: "none",
+    borderRadius: "12px",
+    cursor: "pointer",
+    boxShadow: "0 4px 12px rgba(0,0,0,0.4)"
+  });
+  document.body.appendChild(btnInstall);
+
+  // --- PANEL MODERNO ---
+  const panelInstall = document.createElement("div");
+  Object.assign(panelInstall.style, {
+    position: "fixed",
+    top: "50%",
+    left: "50%",
+    transform: "translate(-50%, -50%)",
+    background: "#1e1e1e",
+    color: "#fff",
+    padding: "30px",
+    borderRadius: "16px",
+    boxShadow: "0 12px 40px rgba(0,0,0,0.8)",
+    zIndex: "10000",
+    width: "90%",
+    maxWidth: "500px",
+    textAlign: "center",
+    display: "none",
+    overflowY: "auto"
+  });
+
+  panelInstall.innerHTML = `
+    <img src="https://media.discordapp.net/attachments/1371870966367387676/1420300676558225448/C-24-9-2025.png?ex=68d83155&is=68d6dfd5&hm=a5af8163a1f88dd0bcf886420195fc0d184f776494e4b0032ab7fe3dc043c863&=&format=webp&quality=lossless&width=546&height=577" 
+      alt="Custom" style="width:150px; height:auto; border-radius:12px; margin-bottom:20px;" />
+    <h2 style="margin:10px 0 20px;">Custom Version 1.0</h2>
+    <button id="install-btn" style="
+      padding:12px 24px;
+      background:green;
+      color:white;
+      font-weight:bold;
+      border:none;
+      border-radius:10px;
+      cursor:pointer;
+      font-size:16px;
+      box-shadow:0 4px 12px rgba(0,0,0,0.4);
+    ">Instalar</button>
+    <button id="close-install" style="
+      margin-top:20px;
+      padding:8px 16px;
+      background:#555;
+      color:white;
+      font-weight:bold;
+      border:none;
+      border-radius:8px;
+      cursor:pointer;
+    ">Cerrar</button>
+  `;
+
+  document.body.appendChild(panelInstall);
+
+  const installBtn = panelInstall.querySelector("#install-btn");
+  const closeBtn = panelInstall.querySelector("#close-install");
+
+  // Abrir panel
+  btnInstall.addEventListener("click", () => {
+    panelInstall.style.display = "block";
+  });
+
+  // Cerrar panel
+  closeBtn.addEventListener("click", () => {
+    panelInstall.style.display = "none";
+  });
+
+  // Botón instalar PWA
+  installBtn.addEventListener("click", async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if(outcome === 'accepted'){
+        alert("✅ Aplicación instalada correctamente");
+      } else {
+        alert("❌ Instalación cancelada");
+      }
+      deferredPrompt = null;
+      panelInstall.style.display = "none";
+    } else {
+      alert("La instalación no está disponible en este navegador");
+    }
+  });
+});
+</script>
   
 </body>
 </html>
