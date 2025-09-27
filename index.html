@@ -819,7 +819,7 @@ document.addEventListener("DOMContentLoaded", () => {
   btnInventory.style.fontWeight = "600";
   sidebarMenu.appendChild(btnInventory);
 
-  // Crear panel de inventario oculto
+  // Crear panel de inventario grande
   const panelInventory = document.createElement("div");
   Object.assign(panelInventory.style, {
     position: "fixed",
@@ -828,22 +828,28 @@ document.addEventListener("DOMContentLoaded", () => {
     transform: "translate(-50%, -50%)",
     background: "#1e1e1e",
     color: "#fff",
-    padding: "20px",
-    borderRadius: "12px",
-    boxShadow: "0 8px 32px rgba(0,0,0,0.8)",
+    padding: "30px",
+    borderRadius: "16px",
+    boxShadow: "0 12px 40px rgba(0,0,0,0.8)",
     zIndex: "10000",
-    width: "400px",
-    maxHeight: "80vh",
+    width: "90%",
+    maxWidth: "900px",
+    maxHeight: "85vh",
     overflowY: "auto",
     display: "none"
   });
   panelInventory.innerHTML = `
-    <h3 style="margin-top:0;">Tu Inventario</h3>
-    <div id="inventory-items"></div>
+    <h2 style="margin-top:0;margin-bottom:20px;text-align:center;">📦 Tu Inventario</h2>
+    <div id="inventory-items" style="
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
+      gap:20px;
+    "></div>
     <button id="close-inv" style="
-      margin-top:20px;padding:10px 16px;
+      margin-top:30px;padding:12px 20px;
       background:red;color:white;font-weight:bold;
-      border:none;border-radius:8px;cursor:pointer;
+      border:none;border-radius:10px;cursor:pointer;
+      display:block;margin-left:auto;margin-right:auto;
     ">Cerrar</button>
   `;
   document.body.appendChild(panelInventory);
@@ -867,28 +873,48 @@ document.addEventListener("DOMContentLoaded", () => {
 
     invItemsContainer.innerHTML = "";
     if (!inventory.length) {
-      invItemsContainer.innerHTML = "<p>Sin items</p>";
+      invItemsContainer.innerHTML = "<p style='text-align:center;'>Sin items</p>";
     } else {
       inventory.forEach(it => {
-        const div = document.createElement("div");
-        div.style.display = "flex";
-        div.style.alignItems = "center";
-        div.style.marginBottom = "10px";
+        const card = document.createElement("div");
+        Object.assign(card.style, {
+          background: "#2a2a2a",
+          borderRadius: "12px",
+          padding: "12px",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          textAlign: "center",
+          boxShadow: "0 4px 12px rgba(0,0,0,0.5)"
+        });
 
         const img = document.createElement("img");
-        img.src = it.img || "https://via.placeholder.com/40";
+        img.src = it.img || "https://via.placeholder.com/80";
         img.alt = it.name;
-        img.style.width = "40px";
-        img.style.height = "40px";
-        img.style.borderRadius = "6px";
-        img.style.marginRight = "10px";
+        img.style.width = "80px";
+        img.style.height = "80px";
+        img.style.borderRadius = "12px";
+        img.style.marginBottom = "12px";
 
-        const info = document.createElement("div");
-        info.innerHTML = `<strong>${it.name}</strong><br><em>${it.tag || ""}</em>`;
+        const name = document.createElement("div");
+        name.textContent = it.name;
+        name.style.fontWeight = "700";
+        name.style.fontSize = "16px";
+        name.style.marginBottom = "6px";
 
-        div.appendChild(img);
-        div.appendChild(info);
-        invItemsContainer.appendChild(div);
+        const tag = document.createElement("div");
+        tag.textContent = it.tag || "";
+        tag.style.fontSize = "14px";
+        tag.style.fontWeight = "600";
+        tag.style.background = "rgba(255,255,255,0.1)";
+        tag.style.padding = "4px 8px";
+        tag.style.borderRadius = "8px";
+
+        card.appendChild(img);
+        card.appendChild(name);
+        card.appendChild(tag);
+
+        invItemsContainer.appendChild(card);
       });
     }
 
