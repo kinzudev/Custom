@@ -806,6 +806,96 @@ document.addEventListener('DOMContentLoaded', () => {
   window.loadStore = loadStore;
 });
 </script>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const sidebarMenu = document.querySelector(".sidebar .menu");
+  if (!sidebarMenu) return;
+
+  // Crear botón Inventario
+  const btnInventory = document.createElement("button");
+  btnInventory.textContent = "Inventario";
+  btnInventory.className = "btn";
+  btnInventory.style.fontWeight = "600";
+  sidebarMenu.appendChild(btnInventory);
+
+  // Crear panel de inventario oculto
+  const panelInventory = document.createElement("div");
+  Object.assign(panelInventory.style, {
+    position: "fixed",
+    top: "50%",
+    left: "50%",
+    transform: "translate(-50%, -50%)",
+    background: "#1e1e1e",
+    color: "#fff",
+    padding: "20px",
+    borderRadius: "12px",
+    boxShadow: "0 8px 32px rgba(0,0,0,0.8)",
+    zIndex: "10000",
+    width: "400px",
+    maxHeight: "80vh",
+    overflowY: "auto",
+    display: "none"
+  });
+  panelInventory.innerHTML = `
+    <h3 style="margin-top:0;">Tu Inventario</h3>
+    <div id="inventory-items"></div>
+    <button id="close-inv" style="
+      margin-top:20px;padding:10px 16px;
+      background:red;color:white;font-weight:bold;
+      border:none;border-radius:8px;cursor:pointer;
+    ">Cerrar</button>
+  `;
+  document.body.appendChild(panelInventory);
+
+  const invItemsContainer = panelInventory.querySelector("#inventory-items");
+  const closeBtn = panelInventory.querySelector("#close-inv");
+
+  // Cerrar panel
+  closeBtn.addEventListener("click", () => {
+    panelInventory.style.display = "none";
+  });
+
+  // Mostrar inventario al clickear el botón
+  btnInventory.addEventListener("click", async () => {
+    const user = auth.currentUser;
+    if (!user) return alert("No estás logueado.");
+
+    const userDoc = await db.collection("users").doc(user.uid).get();
+    const data = userDoc.data() || {};
+    const inventory = data.inventory || [];
+
+    invItemsContainer.innerHTML = "";
+    if (!inventory.length) {
+      invItemsContainer.innerHTML = "<p>Sin items</p>";
+    } else {
+      inventory.forEach(it => {
+        const div = document.createElement("div");
+        div.style.display = "flex";
+        div.style.alignItems = "center";
+        div.style.marginBottom = "10px";
+
+        const img = document.createElement("img");
+        img.src = it.img || "https://via.placeholder.com/40";
+        img.alt = it.name;
+        img.style.width = "40px";
+        img.style.height = "40px";
+        img.style.borderRadius = "6px";
+        img.style.marginRight = "10px";
+
+        const info = document.createElement("div");
+        info.innerHTML = `<strong>${it.name}</strong><br><em>${it.tag || ""}</em>`;
+
+        div.appendChild(img);
+        div.appendChild(info);
+        invItemsContainer.appendChild(div);
+      });
+    }
+
+    panelInventory.style.display = "block";
+  });
+});
+</script>
   
 </body>
 </html>
