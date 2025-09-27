@@ -922,6 +922,81 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 </script>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  // Crear contenedor de la barra
+  const barContainer = document.createElement("div");
+  barContainer.style.position = "fixed";
+  barContainer.style.top = "0";
+  barContainer.style.left = "0";
+  barContainer.style.width = "100%";
+  barContainer.style.background = "#222";
+  barContainer.style.color = "white";
+  barContainer.style.padding = "8px";
+  barContainer.style.fontFamily = "Arial, sans-serif";
+  barContainer.style.zIndex = "9999";
+  barContainer.style.boxShadow = "0 2px 8px rgba(0,0,0,0.4)";
+  
+  // Texto de nivel
+  const levelText = document.createElement("div");
+  levelText.style.marginBottom = "4px";
+  levelText.style.fontWeight = "bold";
+  barContainer.appendChild(levelText);
+  
+  // Barra visual
+  const xpBarOuter = document.createElement("div");
+  xpBarOuter.style.width = "100%";
+  xpBarOuter.style.height = "20px";
+  xpBarOuter.style.background = "#444";
+  xpBarOuter.style.borderRadius = "6px";
+  xpBarOuter.style.overflow = "hidden";
+  barContainer.appendChild(xpBarOuter);
+  
+  const xpBarInner = document.createElement("div");
+  xpBarInner.style.height = "100%";
+  xpBarInner.style.width = "0%";
+  xpBarInner.style.background = "linear-gradient(90deg, #4caf50, #2e7d32)";
+  xpBarInner.style.textAlign = "center";
+  xpBarInner.style.color = "white";
+  xpBarInner.style.fontSize = "12px";
+  xpBarInner.style.fontWeight = "bold";
+  xpBarInner.style.lineHeight = "20px";
+  xpBarOuter.appendChild(xpBarInner);
+  
+  document.body.appendChild(barContainer);
+
+  // 📦 Guardado en localStorage
+  let level = parseInt(localStorage.getItem("level") || "1");
+  let xp = parseInt(localStorage.getItem("xp") || "0");
+
+  function updateBar() {
+    const percent = (xp / 100) * 100;
+    levelText.textContent = `Nivel: ${level}`;
+    xpBarInner.style.width = percent + "%";
+    xpBarInner.textContent = `${xp} XP`;
+  }
+
+  function addXP(amount) {
+    xp += amount;
+    if (xp >= 100) {
+      xp -= 100;
+      level++;
+    }
+    localStorage.setItem("xp", xp);
+    localStorage.setItem("level", level);
+    updateBar();
+  }
+
+  // Inicializar
+  updateBar();
+
+  // ⏳ Cada 1 minuto = +50 XP
+  setInterval(() => {
+    addXP(50);
+  }, 60000);
+});
+</script>
   
 </body>
 </html>
