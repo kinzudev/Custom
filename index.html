@@ -941,8 +941,15 @@ document.addEventListener("DOMContentLoaded", () => {
   const levelText = document.createElement("div");
   levelText.style.fontWeight = "bold";
   levelText.style.fontSize = "18px";
-  levelText.style.marginBottom = "8px";
+  levelText.style.marginBottom = "6px";
   xpContainer.appendChild(levelText);
+
+  // Texto de rango
+  const rankText = document.createElement("div");
+  rankText.style.fontSize = "16px";
+  rankText.style.marginBottom = "10px";
+  rankText.style.color = "#38bdf8"; // celeste para destacar
+  xpContainer.appendChild(rankText);
 
   // Barra de XP
   const barOuter = document.createElement("div");
@@ -951,7 +958,6 @@ document.addEventListener("DOMContentLoaded", () => {
   barOuter.style.background = "#334155";
   barOuter.style.borderRadius = "8px";
   barOuter.style.overflow = "hidden";
-  barOuter.style.position = "relative";
   xpContainer.appendChild(barOuter);
 
   const barInner = document.createElement("div");
@@ -966,7 +972,7 @@ document.addEventListener("DOMContentLoaded", () => {
   barInner.style.lineHeight = "24px";
   barOuter.appendChild(barInner);
 
-  // Insertar en la página (ej: al inicio del main o contenido)
+  // Insertar en la página
   const main = document.querySelector("main") || document.body;
   main.prepend(xpContainer);
 
@@ -974,9 +980,19 @@ document.addEventListener("DOMContentLoaded", () => {
   let level = parseInt(localStorage.getItem("level") || "1");
   let xp = parseInt(localStorage.getItem("xp") || "0");
 
+  // Rangos según nivel
+  function getRank(lvl) {
+    if (lvl <= 5) return "Novato";
+    if (lvl <= 10) return "Aprendiz";
+    if (lvl <= 20) return "Guerrero";
+    if (lvl <= 30) return "Maestro";
+    return "Leyenda";
+  }
+
   function updateBar() {
     const percent = (xp / 100) * 100;
     levelText.textContent = `Nivel: ${level}`;
+    rankText.textContent = `Rango: ${getRank(level)}`;
     barInner.style.width = percent + "%";
     barInner.textContent = `${xp} XP`;
   }
